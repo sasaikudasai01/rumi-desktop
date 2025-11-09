@@ -1,4 +1,5 @@
 import flet as ft
+import flet_audio as fa
 import time
 import config
 from mutagen.id3 import ID3, APIC, TIT2, TPE1, ID3NoHeaderError, TALB # изменение метаданных трека
@@ -126,6 +127,19 @@ def edit_data(page: ft.Page):
 
     # редактировать название аудио в метаданных
     def edit_name_handl(e):
+        # это все нужно чтобы мутаген без проблем изменил метаданные
+        play_pouse_icon.src = "icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"
+        audio1.pause()
+        audio1.seek(0)
+        audio1.release()
+        audio_slider.value=0
+        page.overlay.remove(audio1)
+        page.update()
+
+        time.sleep(1)
+
+
+
         # Если нет ID3-тэгов — создать
         try:
             audio = ID3(config.audio_file)
@@ -161,7 +175,7 @@ def edit_data(page: ft.Page):
 
         apply_status_text.value = 'Done'
         page.update()
-        time.sleep(1)
+        time.sleep(0.5)
         apply_status_text.value = ' '
         page.update()
 
@@ -215,6 +229,13 @@ def edit_data(page: ft.Page):
         config.song_name_exists = None
         config.artist_name_exists = None
         config.album_name_exists = None
+
+        if any(isinstance(ctrl, fa.Audio) for ctrl in page.overlay):
+            audio1.release()
+            page.overlay.remove(audio1)
+            page.update()
+            time.sleep(0.5) # дать Flet время инициализировать компонент
+
         page.go("/")
 
     # кнопка отмены
@@ -275,6 +296,91 @@ def edit_data(page: ft.Page):
 
 
 
+    def audio_loaded(_):
+        audio_slider.max = audio1.get_duration()
+
+    def play(_):
+        # есть ли какой-то трек на данный момент
+        if not any(isinstance(ctrl, fa.Audio) for ctrl in page.overlay):
+            page.overlay.append(audio1)
+            page.update()
+            time.sleep(0.5) # дать Flet время инициализировать компонент
+
+        # если трек не играет, то включить
+        if audio1.get_current_position() == 0:
+            audio1.play()
+            play_pouse_icon.src = "icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"
+            page.update()
+            return
+
+        # если трек уже играет, то поставить на паузу
+        if play_pouse_icon.src == "icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg":
+            play_pouse_icon.src = "icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"
+            audio1.pause()
+        else:
+            play_pouse_icon.src = "icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"
+            audio1.resume()
+        page.update()
+
+    def audio_position_changed(_):
+        if audio1.get_current_position():
+            audio_slider.value=audio1.get_current_position()
+            page.update()
+
+    def slider_changed(e):
+        audio1.seek(int(e.control.value))
+        page.update()
+
+    audio_slider = ft.Slider(
+        min=0,
+        on_change=slider_changed,
+        active_color="#FE3C79",
+        inactive_color="#EBD0E1",
+    )
+
+    audio1 = fa.Audio(
+        src=config.audio_file,
+        on_loaded=lambda _: audio_loaded(_),
+        on_position_changed=lambda e: audio_position_changed(e),
+    )
+
+    page.overlay.append(audio1)
+
+    play_pouse_icon = ft.Image(
+        src="icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg",
+        width=60,
+        height=60
+    )
+
+    play_pouse_button = ft.FilledButton(
+        content=play_pouse_icon,
+        width=80,
+        height=80,
+        bgcolor="#FE3C79",
+        style=ft.ButtonStyle(
+            shape=ft.ContinuousRectangleBorder(radius=80),
+        ),
+
+        on_click=play,  # обработчик нажатия
+    )
+
+    audio_controls = ft.Row(
+        controls=[
+            ft.Container(
+                content=play_pouse_button
+            ),
+            ft.Container(
+                content=audio_slider,
+                width=500,
+                #expand=True,
+            )
+        ],
+        alignment=ft.MainAxisAlignment.CENTER,
+        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+    )
+
+
+
     apply_status_text = ft.Text(
         ' ',
         style=ft.TextStyle(
@@ -312,6 +418,8 @@ def edit_data(page: ft.Page):
                         alignment=ft.MainAxisAlignment.CENTER,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
+
+                    audio_controls,
 
                     ft.Row(
                         controls=[cancel_button, apply_button],

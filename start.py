@@ -227,7 +227,7 @@ def startview(page: ft.Page):
 
             download_status_text.value = 'Finished'
             page.update()
-            time.sleep(10)
+            time.sleep(1)
             download_status_text.value = ' '
             page.update()
 
