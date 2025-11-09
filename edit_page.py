@@ -11,7 +11,11 @@ def edit_data(page: ft.Page):
     # замена обложки
     def on_file_picked(e: ft.FilePickerResultEvent):
         if e.files:
-            cover_image.src = e.files[0].path
+            if config.cover_exists:
+                # очистить src_base64 если у трека изначально есть обложка
+                cover_image.src_base64 = None
+
+            cover_image.src = e.files[0].path # показать новую обложку
             cover_image.opacity = 1
             edit_cover_icon.visible = False
             page.update()
@@ -30,6 +34,14 @@ def edit_data(page: ft.Page):
                 cover_image.opacity = 1
             page.update()
 
+    cover_image = ft.Image(
+        src="color/black.jpg",
+        width=420,
+        height=420,
+        border_radius=30,
+        opacity=0.5
+    )
+
     # pops up when hovered on cover
     edit_cover_icon = ft.Container(
         content=ft.Image(
@@ -42,14 +54,13 @@ def edit_data(page: ft.Page):
         visible=True,
     )
 
-    # cover image
-    cover_image = ft.Image(
-        src="color/black.jpg",
-        width=420,
-        height=420,
-        border_radius=30,
-        opacity=0.5,
-    )
+    # если у трека есть обложка, то показать ее в cover_image
+    if config.cover_exists:
+        cover_image.src_base64=config.cover_exists
+        cover_image.src=None
+        cover_image.opacity=1
+
+        edit_cover_icon.visible = False
 
     # song cover container
     song_cover = ft.Container(
@@ -74,8 +85,12 @@ def edit_data(page: ft.Page):
         border_color="transparent",
         border_radius=30,
         bgcolor="transparent",
-        width=1000,
+        width=1340,
     )
+
+    if config.song_name_exists:
+        song_name_input.hint_text = config.song_name_exists
+        page.update()
 
     # artist name
     artist_name_input = ft.TextField(
@@ -89,6 +104,10 @@ def edit_data(page: ft.Page):
         width=670,
     )
 
+    if config.artist_name_exists:
+        artist_name_input.hint_text = config.artist_name_exists
+        page.update()
+
     # album name
     album_name_input = ft.TextField(
         hint_text="Album",
@@ -100,6 +119,10 @@ def edit_data(page: ft.Page):
         bgcolor="transparent",
         width=670,
     )
+
+    if config.album_name_exists:
+        album_name_input.hint_text = config.album_name_exists
+        page.update()
 
     # редактировать название аудио в метаданных
     def edit_name_handl(e):
@@ -116,27 +139,29 @@ def edit_data(page: ft.Page):
         if album_name_input.value:
             audio.add(TALB(encoding=3, text=album_name_input.value.strip()))
 
-        # удаление старых обложек
-        audio.delall("APIC")
+        if not cover_image.src_base64:
+            # удаление старых обложек
+            audio.delall("APIC")
 
-        if not cover_image.src.endswith('black.jpg'): # временная заглушка
-            # новая обложка
-            with open(cover_image.src, "rb") as img_file:
-                audio.add(
-                    APIC(
-                        encoding=3,
-                        mime="image/jpeg",
-                        type=3,  # фронтальная обложка
-                        desc="Cover",
-                        data=img_file.read()
+        if cover_image.src:
+            if not cover_image.src.endswith('black.jpg'): # временная заглушка
+                # новая обложка
+                with open(cover_image.src, "rb") as img_file:
+                    audio.add(
+                        APIC(
+                            encoding=3,
+                            mime="image/jpeg",
+                            type=3,  # фронтальная обложка
+                            desc="Cover",
+                            data=img_file.read()
+                        )
                     )
-                )
 
         audio.save(v2_version=3)
 
         apply_status_text.value = 'Done'
         page.update()
-        time.sleep(10)
+        time.sleep(1)
         apply_status_text.value = ' '
         page.update()
 
@@ -183,6 +208,14 @@ def edit_data(page: ft.Page):
             ),
         ],
     )
+
+    def cancel_editing(e):
+        config.cover_exists = None
+        config.visible_edit_icon = True
+        config.song_name_exists = None
+        config.artist_name_exists = None
+        config.album_name_exists = None
+        page.go("/")
 
     # кнопка отмены
     cancel_button = ft.Stack(
@@ -234,7 +267,7 @@ def edit_data(page: ft.Page):
                 ),
                 width=250,
                 height=45,
-                on_click=lambda e: page.go("/"),
+                on_click=lambda e: cancel_editing(e),
             ),
         ],
         alignment=ft.alignment.center,

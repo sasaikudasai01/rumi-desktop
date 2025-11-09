@@ -1,11 +1,14 @@
 import flet as ft
 import time
+import base64
 import config
 from yt_dlp import YoutubeDL
 from PIL import Image # редактирование изображения
 from mutagen.mp3 import MP3
-from mutagen.id3 import ID3, APIC, error, TIT2, TPE1 # изменение метаданных трека
+from mutagen.id3 import ID3, APIC, error, TIT2, TPE1, TALB # изменение метаданных трека
 import os
+
+import json
 
 def startview(page: ft.Page):
     # вырезать офишал музик видео из названия
@@ -95,12 +98,14 @@ def startview(page: ft.Page):
     def download_yt(e, yt_format, download_img):
         popup.visible = not popup.visible
 
-        if text_input.value.startswith('https://youtu.be/') or text_input.value.startswith('https://www.youtube.com/watch?'):
+        if (text_input.value.startswith('https://youtu.be/') or
+            text_input.value.startswith('https://www.youtube.com/watch?') or
+            text_input.value.startswith('https://youtube.com/playlist?')):
             pass
         else:
             return
 
-        download_status_text.value = 'Downloading...'
+        download_status_text.value = f'Downloading...'
         page.update()
 
         is_no_playlist = True  # плейлист ли это
@@ -135,6 +140,24 @@ def startview(page: ft.Page):
             }]
             ydl_opts_outtmpl = 'music'
 
+
+
+        def my_hook(d):
+            # status: finished
+            # status: downloading
+            if is_no_playlist:
+                download_status_text.value = f'Downloading {d["_percent_str"]}'
+            else:
+                if d["status"] == 'finished':
+                    config.video_counter += 1
+                download_status_text.value = f'Video [{config.video_counter}] {d["_percent_str"]}'
+            page.update()
+            ### для проверок ##############################################
+            #with open("progress_log.json", "a", encoding="utf-8") as f:
+            #    json.dump(d, f, ensure_ascii=False, indent=2)
+
+
+
         # параметры для скачиваемого аудио
         ydl_opts = {
             'format': ydl_opts_format,  # качество аудио
@@ -147,7 +170,8 @@ def startview(page: ft.Page):
             'postprocessors': ydl_opts_postprocessors,
             'noplaylist': is_no_playlist,
             'cookiefile': 'cookies.txt',
-            'quiet': False
+            'quiet': True,
+            'progress_hooks': [my_hook],
         }
         if yt_format == 'mp4':
             ydl_opts['merge_output_format'] = ydl_opts_merge_output_format
@@ -160,8 +184,8 @@ def startview(page: ft.Page):
                 yt_video_info = ydl.extract_info(url, download=True)
                 ### для проверок ###################################
                 # sanitized = ydl.sanitize_info(temp_info)
-                # with open("info.json", "w", encoding="utf-8") as f:
-                #    json.dump(sanitized, f, ensure_ascii=False, indent=2)
+                #with open("info.json", "w", encoding="utf-8") as f:
+                #   json.dump(sanitized, f, ensure_ascii=False, indent=2)
 
             # если это плейлист, то ydl возвращает список словарей entries
             if 'entries' in yt_video_info:  # проверка плейлист ли это
@@ -201,11 +225,13 @@ def startview(page: ft.Page):
                         # изменение метаданных трека
                         mp3_thumbnail(download_img, file_path.replace('mp3', 'webp'), file_path, mp34_filename, yt_video_info['channel'])
 
-            download_status_text.value = 'Downloaded'
+            download_status_text.value = 'Finished'
             page.update()
             time.sleep(10)
             download_status_text.value = ' '
             page.update()
+
+            config.video_counter = 0
 
         except Exception as e:
             print(f'Error: {e}')
@@ -242,7 +268,11 @@ def startview(page: ft.Page):
 
     # окно выбора пути скачивания
     def directory_path(e):
-        directory_picker.get_directory_path()
+        # если ничего не скачивается на данный момент
+        if download_status_text.value == ' ':
+            # ввел ли пользователь ссылку
+            if text_input.value:
+                directory_picker.get_directory_path()
 
     # сохранение пути к аудио файлу
     def on_directory_picked(e: ft.FilePickerResultEvent):
@@ -254,8 +284,9 @@ def startview(page: ft.Page):
 
     # show download menu
     def toggle_menu(e):
-        popup.visible = not popup.visible
-        page.update()
+        if config.download_path:
+            popup.visible = not popup.visible
+            page.update()
 
     download_button = ft.FilledButton(
         content=ft.Image(
@@ -502,13 +533,36 @@ def startview(page: ft.Page):
 
     # окно выбора аудио файла
     def pick_file(e):
-        file_picker.pick_files(allow_multiple=False, allowed_extensions=["mp3"])  # только один mp3 файл
+        if download_status_text.value == ' ':
+            file_picker.pick_files(allow_multiple=False, allowed_extensions=["mp3"])  # только один mp3 файл
 
     # сохранение пути к аудио файлу
     def on_file_picked(e: ft.FilePickerResultEvent):
         if e.files:
+            song = ID3(e.files[0].path)
+            for tag in song.values():
+                # есть ли у трека обложка
+                if isinstance(tag, APIC):
+                    # конвертация в base64, чтобы использовать для обложки трека
+                    config.cover_exists = base64.b64encode(tag.data).decode("utf-8")
+                    ### для проверок ##############################################
+                    # with open("cover.jpg", "wb") as f:
+                    #    f.write(tag.data)
+
+                # есть ли у трека название
+                if isinstance(tag, TIT2):
+                    config.song_name_exists = tag
+
+                # есть ли у трека артист
+                if isinstance(tag, TPE1):
+                    config.artist_name_exists = tag
+
+                # есть ли у трека название альбома
+                if isinstance(tag, TALB):
+                    config.album_name_exists = tag
+
+            # сохранение пути
             config.audio_file = e.files[0].path
-            print(f'main page: {config.audio_file}')
             page.go('/edit')
             page.update()
 
