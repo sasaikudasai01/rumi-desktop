@@ -27,7 +27,7 @@ def edit_data(page: ft.Page):
 
 
     def see_change_icon(e):
-        if cover_image.src != "color/black.jpg":
+        if cover_image.src != "color/icon_sq.png":
             edit_cover_icon.visible = not edit_cover_icon.visible
             if cover_image.opacity != 0.5:
                 cover_image.opacity = 0.5
@@ -36,7 +36,7 @@ def edit_data(page: ft.Page):
             page.update()
 
     cover_image = ft.Image(
-        src="color/black.jpg",
+        src="color/icon_sq.png",
         width=420,
         height=420,
         border_radius=30,
@@ -158,7 +158,7 @@ def edit_data(page: ft.Page):
             audio.delall("APIC")
 
         if cover_image.src:
-            if not cover_image.src.endswith('black.jpg'): # временная заглушка
+            if not cover_image.src.endswith('icon_sq.png'): # временная заглушка
                 # новая обложка
                 with open(cover_image.src, "rb") as img_file:
                     audio.add(
@@ -238,62 +238,6 @@ def edit_data(page: ft.Page):
 
         page.go("/")
 
-    # кнопка отмены
-    cancel_button = ft.Stack(
-        controls=[
-            # border for visible button
-            ft.FilledButton(
-                ' ',
-                bgcolor="#FE3C79",
-                style=ft.ButtonStyle(
-                    shape=ft.ContinuousRectangleBorder(radius=60),
-                ),
-                width=255,
-                height=50,
-            ),
-
-            # visible button
-            ft.FilledButton(
-                ' ',
-                bgcolor="#EBD0E1",
-                style=ft.ButtonStyle(
-                    shape=ft.ContinuousRectangleBorder(radius=60),
-                ),
-                width=250,
-                height=45,
-            ),
-
-            # text on button
-            ft.Container(
-                content=ft.Text(
-                    "Cancel",
-                    style=ft.TextStyle(
-                        color="#FE3C79",
-                        font_family="Gabarito",
-                        size=30,
-                        weight=ft.FontWeight.BOLD
-                    ),
-                ),
-                alignment=ft.alignment.center,
-                width=250,
-                height=45,
-            ),
-
-            # actual transparent button
-            ft.FilledButton(
-                ' ',
-                bgcolor=ft.Colors.TRANSPARENT,
-                style=ft.ButtonStyle(
-                    shape=ft.ContinuousRectangleBorder(radius=60),
-                ),
-                width=250,
-                height=45,
-                on_click=lambda e: cancel_editing(e),
-            ),
-        ],
-        alignment=ft.alignment.center,
-    )
-
 
 
     def audio_loaded(_):
@@ -351,16 +295,11 @@ def edit_data(page: ft.Page):
         width=60,
         height=60
     )
-
-    play_pouse_button = ft.FilledButton(
+    play_pouse_button = ft.Button(
         content=play_pouse_icon,
-        width=80,
-        height=80,
-        bgcolor="#FE3C79",
-        style=ft.ButtonStyle(
-            shape=ft.ContinuousRectangleBorder(radius=80),
-        ),
-
+        width=65,
+        height=65,
+        bgcolor=ft.Colors.TRANSPARENT,
         on_click=play,  # обработчик нажатия
     )
 
@@ -371,8 +310,7 @@ def edit_data(page: ft.Page):
             ),
             ft.Container(
                 content=audio_slider,
-                width=500,
-                #expand=True,
+                width=840,
             )
         ],
         alignment=ft.MainAxisAlignment.CENTER,
@@ -396,9 +334,28 @@ def edit_data(page: ft.Page):
         alignment=ft.alignment.bottom_center
     )
 
+
+
+    # кнопка "вернуться к странице скачивания"
+    to_download_page_button = ft.Container(
+        content=ft.Image(
+            src="icons/home_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg",
+            width=55,
+            height=55,
+            color='#EBD0E1'
+        ),
+        width=55,
+        height=55,
+        border_radius=15,
+        alignment=ft.alignment.center,
+        ink=True,
+        on_click=lambda e: cancel_editing(e),
+    )
+
     edit_page_ui = ft.Stack(
         controls=[
             apply_status,
+            to_download_page_button,
             ft.Column(
                 controls=[
                     ft.Row(
@@ -422,7 +379,7 @@ def edit_data(page: ft.Page):
                     audio_controls,
 
                     ft.Row(
-                        controls=[cancel_button, apply_button],
+                        controls=[apply_button],
                         alignment=ft.MainAxisAlignment.CENTER,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
@@ -440,5 +397,14 @@ def edit_data(page: ft.Page):
             fit=ft.ImageFit.COVER
         )
     )
+
+    # управление на клавиатуре
+    def make_fullscreen(e: ft.KeyboardEvent):
+        # полноэкранный режим
+        if e.key.lower() == "f":
+            page.window.full_screen = not page.window.full_screen
+            page.update()
+
+    page.on_keyboard_event = make_fullscreen
 
     return ft.View("/edit", controls=[edit_page_ui], bgcolor=ft.Colors.TRANSPARENT, decoration=background)

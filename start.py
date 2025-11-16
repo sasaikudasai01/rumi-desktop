@@ -5,10 +5,11 @@ import config
 from yt_dlp import YoutubeDL
 from PIL import Image # редактирование изображения
 from mutagen.mp3 import MP3
-from mutagen.id3 import ID3, APIC, error, TIT2, TPE1, TALB # изменение метаданных трека
+from mutagen.id3 import ID3, APIC, error, TIT2, TPE1, TALB, ID3NoHeaderError # изменение метаданных трека
 import os
 
 import json
+
 
 def startview(page: ft.Page):
     # вырезать офишал музик видео из названия
@@ -91,19 +92,11 @@ def startview(page: ft.Page):
             # принудительное сохранение файла в ID3v2.3
             audio.tags.add(TIT2(encoding=3, text=audio_name))  # название трека в метаданных
             audio.tags.add(TPE1(encoding=3, text=channel_name))  # автор трека в метаданных
-            audio.save(
-                v2_version=3)  # по умолчанию файл имеет только ID3v1, поэтому mutagen обрабатывает его некорректно
+            audio.save(v2_version=3)  # по умолчанию файл имеет только ID3v1, поэтому mutagen обрабатывает его некорректно
             os.remove(f"{new_image_path}.jpg")  # удаление обложки после применения к аудио файлу
 
     def download_yt(e, yt_format, download_img):
         popup.visible = not popup.visible
-
-        if (text_input.value.startswith('https://youtu.be/') or
-            text_input.value.startswith('https://www.youtube.com/watch?') or
-            text_input.value.startswith('https://youtube.com/playlist?')):
-            pass
-        else:
-            return
 
         download_status_text.value = f'Downloading...'
         page.update()
@@ -236,6 +229,84 @@ def startview(page: ft.Page):
         except Exception as e:
             print(f'Error: {e}')
 
+    def download_soundcloud(_):
+        download_status_text.value = f'Downloading...'
+        page.update()
+
+        url = text_input.value
+
+        def my_hook(d):
+            download_status_text.value = f'Downloading {d["_percent_str"]}'
+            page.update()
+
+        ydl_opts = {
+            "format": "bestaudio/best",
+            "writethumbnail": True,
+            "convertthumbnails": "jpg",
+            "outtmpl": f'{config.download_path}/%(title)s.%(ext)s',  # сохранить с названием
+            "noplaylist": True,
+            "hls_prefer_native": True,  # форсируем HLS
+            "postprocessors": [
+                {
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "192",
+                }
+            ],
+            'restrictfilenames': True,  # избавление от лишних символов в названии
+            "allow_unplayable_formats": True,  # попробует скачать даже "неиграбельные"
+            'quiet': True,
+            'progress_hooks': [my_hook],
+        }
+
+        try:
+            with YoutubeDL(ydl_opts) as ydl:
+                sc_audio_info = ydl.extract_info(url, download=True)
+                file_path = os.path.splitext(ydl.prepare_filename(sc_audio_info))[0] + f'.mp3'  # инфо об аудио и путь к файлу
+
+            # Если нет ID3-тэгов — создать
+            try:
+                audio = ID3(file_path)
+            except ID3NoHeaderError:
+                audio = ID3()  # создаем теги, если их нет
+
+            # yt_dlp возвращает список словарей, если у трека есть обложка
+            # если обложки нет, то выдаст список с одним элементом
+            if len(sc_audio_info['thumbnails']) > 1:  # если у трека есть обложка
+                for img_size in sc_audio_info['thumbnails']:
+                    # в элементе с ключом original содержится путь к обложке
+                    if img_size['id'] == 'original':
+                        with open(f"{img_size['filepath']}", 'rb') as albumart:
+                            audio.add(
+                                APIC(
+                                    encoding=3,  # utf-8
+                                    mime='image/jpeg',  # или 'image/png'
+                                    type=3,  # front cover
+                                    desc='Cover',
+                                    data=albumart.read()
+                                )
+                            )
+                        audio.save(v2_version=3)  # по умолчанию файл имеет только ID3v1, поэтому mutagen обрабатывает его некорректно
+
+                os.remove(f"{img_size['filepath']}") # удаление обложки после применения к аудио файлу
+
+            else:
+                for img in sc_audio_info['thumbnails']:
+                    os.remove(f"{img['filepath']}") # удаление обложки после применения к аудио файлу
+
+            audio.add(TIT2(encoding=3, text=sc_audio_info['title'])) # название трека в метаданных
+            audio.add(TPE1(encoding=3, text=sc_audio_info["uploader"])) # автор трека в метаданных
+            audio.save(v2_version=3)  # по умолчанию файл имеет только ID3v1, поэтому mutagen обрабатывает его некорректно
+
+            download_status_text.value = 'Finished'
+            page.update()
+            time.sleep(1)
+            download_status_text.value = ' '
+            page.update()
+
+        except Exception as e:
+            print(e)
+
     # поле ввода ссылки
     text_input = ft.TextField(
         hint_text="url",
@@ -274,15 +345,24 @@ def startview(page: ft.Page):
             if text_input.value:
                 directory_picker.get_directory_path()
 
-    # сохранение пути к аудио файлу
+    # сохранение пути к аудио файлу и распределение ссылки на правильные функции
     def on_directory_picked(e: ft.FilePickerResultEvent):
         config.download_path = e.path
-        toggle_menu(page)
+
+        # показать окно скачивания ютуба
+        if (text_input.value.startswith('https://youtu.be/') or
+            text_input.value.startswith('https://www.youtube.com/watch?') or
+            text_input.value.startswith('https://youtube.com/playlist?')):
+
+            toggle_menu(page)
+
+        elif text_input.value.startswith('https://soundcloud.com/'):
+            download_soundcloud(e)
 
     directory_picker = ft.FilePicker(on_result=on_directory_picked)
     page.overlay.append(directory_picker)
 
-    # show download menu
+    # show youtube download menu
     def toggle_menu(e):
         if config.download_path:
             popup.visible = not popup.visible
@@ -586,6 +666,25 @@ def startview(page: ft.Page):
 
 
 
+    def open_music_library(_):
+        page.go('/music_player')
+
+    music_library_button = ft.Container(
+        content=ft.Image(
+            src="icons/library_music_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg",
+            width=55,
+            height=55,
+        ),
+        width=55,
+        height=55,
+        border_radius=15,
+        alignment=ft.alignment.center,
+        ink=True,
+        on_click=lambda _: open_music_library(_),
+    )
+
+
+
     download_status_text = ft.Text(
         ' ',
         style=ft.TextStyle(
@@ -635,7 +734,10 @@ def startview(page: ft.Page):
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             ),
             popup,
-            find_audio,
+            ft.Row(
+                controls=[find_audio,
+                          music_library_button]
+            )
         ],
         expand=True,
     )
@@ -646,5 +748,14 @@ def startview(page: ft.Page):
             fit=ft.ImageFit.COVER
         )
     )
+
+    # управление на клавиатуре
+    def make_fullscreen(e: ft.KeyboardEvent):
+        # полноэкранный режим
+        if e.key.lower() == "f":
+            page.window.full_screen = not page.window.full_screen
+            page.update()
+
+    page.on_keyboard_event = make_fullscreen
 
     return ft.View("/", controls=[main_page], bgcolor=ft.Colors.TRANSPARENT, decoration=background)

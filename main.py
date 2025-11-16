@@ -1,9 +1,20 @@
 import flet as ft
 from start import startview
 from edit_page import edit_data
+from player import music_player
 
 def main(page: ft.Page):
     page.title = "rumi-desktop"
+    page.window.icon = "C:/Games/ne games/rumi-desktop/color/icon_sq.ico"
+
+    # управление на клавиатуре
+    def make_fullscreen(e: ft.KeyboardEvent):
+        # полноэкранный режим
+        if e.key.lower() == "f":
+            page.window.full_screen = not page.window.full_screen
+            page.update()
+
+    page.on_keyboard_event = make_fullscreen
 
     def route_change(e):
         page.views.clear()
@@ -11,6 +22,10 @@ def main(page: ft.Page):
             page.views.append(startview(page))
         elif page.route == "/edit":
             page.views.append(edit_data(page))
+        elif page.route == "/music_player":
+            page.views.append(music_player(page))
+
+        #page.views.append(music_player(page))
         page.update()
 
     def view_pop(e):
