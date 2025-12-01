@@ -1,11 +1,13 @@
 import flet as ft
+import config as cfg
 from start import startview
 from edit_page import edit_data
 from player import music_player
 
 def main(page: ft.Page):
     page.title = "rumi-desktop"
-    page.window.icon = "C:/Games/ne games/rumi-desktop/color/icon_sq.ico"
+    page.window.icon = cfg.resource_path("color/icon_sq.ico")
+    page.window.maximized = True
 
     # управление на клавиатуре
     def make_fullscreen(e: ft.KeyboardEvent):

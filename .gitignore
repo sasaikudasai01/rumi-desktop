@@ -1,2 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual env
+venv/
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Runtime files
+*.log
 mp3_files.json
+cooks/
 audio/
+
+# IDE
+.idea/
+
+# OS junk
+Thumbs.db
+.DS_Store

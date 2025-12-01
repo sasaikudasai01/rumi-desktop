@@ -1,7 +1,6 @@
 import flet as ft
 import flet_audio as fa
 import os
-import io
 import time
 import json
 import base64
@@ -14,8 +13,6 @@ from mutagen.id3 import ID3, APIC, TIT2, TPE1, ID3NoHeaderError, TALB # мета
 
 def music_player(page: ft.Page):
     # border=ft.border.all(1, ft.Colors.RED), # отладка
-
-    random.seed(time.time())
 
     # список путей к мп3 файлам
     try:
@@ -30,7 +27,7 @@ def music_player(page: ft.Page):
 
     # добавить путь к аудио файлам
     add_path_icon = ft.Image(
-        src='icons/plus.svg',
+        src=config.resource_path('icons/plus.svg'),
         width=420,
     )
     add_path = ft.Container(
@@ -61,7 +58,7 @@ def music_player(page: ft.Page):
         content=ft.Row(
             controls=[
                 ft.Image(
-                    src="icons/plus.svg",
+                    src=config.resource_path("icons/plus.svg"),
                     width=65,
                     height=65,
                     color='#EBD0E1'
@@ -97,7 +94,7 @@ def music_player(page: ft.Page):
         # если у трека есть обложка, название и артист, то показать всю инфy
         for file in mp3_files_path:
             cover_image = ft.Image(
-                src="color/icon_sq.png",
+                src=config.resource_path("color/icon_sq.png"),
             )
 
             # song cover container
@@ -149,7 +146,7 @@ def music_player(page: ft.Page):
             )
 
             delete_icon = ft.Image(
-                src='icons/delete.svg',
+                src=config.resource_path('icons/delete.svg'),
                 opacity=0,
             )
             delete_song_button = ft.Container(
@@ -251,10 +248,10 @@ def music_player(page: ft.Page):
             if config.previous_background:
                 os.remove(config.previous_background)
 
-            background_image.src = 'color/Desktop - 1.png'
+            background_image.src = config.resource_path('color/Desktop - 1.png')
             config.previous_background = None
             profile_song_picture.src_base64 = None
-            profile_song_picture.src = 'color/icon_sq.png'
+            profile_song_picture.src = config.resource_path('color/icon_sq.png')
             background_image.opacity = 1
 
             song_elements.controls.append(add_path)
@@ -385,7 +382,7 @@ def music_player(page: ft.Page):
     # инфо о треке справа
     profile_song_edit_icon = ft.Container(
         content=ft.Image(
-            src="icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg",
+            src=config.resource_path("icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
             width=250,
             height=250,
             border_radius=30,
@@ -394,7 +391,7 @@ def music_player(page: ft.Page):
         visible=False,
     )
     profile_song_picture = ft.Image(
-        src="color/icon_sq.png",
+        src=config.resource_path("color/icon_sq.png"),
         border_radius=25,
         opacity=1,
     )
@@ -517,10 +514,10 @@ def music_player(page: ft.Page):
 
             # установить обложку трека в качестве фона
             blurred_cover = blur_image_bytes(cover_tag.data, format=fmt, radius=5)
-            with open(f"color/temporal_blurred_{file.stem}.png", "wb") as f:
+            with open(config.resource_path(f"color/temporal_blurred_{file.stem}.png"), "wb") as f:
                 f.write(blurred_cover)
 
-            background_image.src = f"color/temporal_blurred_{file.stem}.png"
+            background_image.src = config.resource_path(f"color/temporal_blurred_{file.stem}.png")
             if config.previous_background:
                 os.remove(config.previous_background)
             config.previous_background = background_image.src
@@ -531,10 +528,10 @@ def music_player(page: ft.Page):
             if config.previous_background:
                 os.remove(config.previous_background)
 
-            background_image.src = 'color/Desktop - 1.png'
+            background_image.src = config.resource_path('color/Desktop - 1.png')
             config.previous_background = None
             profile_song_picture.src_base64 = None
-            profile_song_picture.src = 'color/icon_sq.png'
+            profile_song_picture.src = config.resource_path('color/icon_sq.png')
             background_image.opacity = 1
 
         # добавление названия файла в название трека если в метаданных ничего нет
@@ -553,11 +550,15 @@ def music_player(page: ft.Page):
         audio1.play()
         audio1.volume = volume_slider.value
 
+        song_duration_text.value = ms_to_time(audio1.get_duration())
+
+        page.update()
+
     # включение трека при нажатии на кнопку паузы
     def play(_):
         if audio1 in page.overlay:
             # если трек уже играет, то поставить на паузу
-            if play_pouse_icon.src == "icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg":
+            if play_pouse_icon.src == config.resource_path("icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"):
                 audio1.pause()
             else:
                 audio1.resume()
@@ -567,6 +568,7 @@ def music_player(page: ft.Page):
     def audio_position_changed(_):
         if audio1.get_current_position():
             audio_slider.value=audio1.get_current_position()
+            song_current_position_text.value = ms_to_time(audio1.get_current_position())
             page.update()
 
     # перемотка
@@ -588,18 +590,18 @@ def music_player(page: ft.Page):
             audio1.volume = volume_slider.value
 
             if audio1.volume > 0.5:
-                volume_icon.src = 'icons/volume_up_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg'
+                volume_icon.src = config.resource_path('icons/volume_up_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg')
             elif audio1.volume < 0.5:
-                volume_icon.src = 'icons/volume_down_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg'
+                volume_icon.src = config.resource_path('icons/volume_down_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg')
             elif audio1.volume == 0:
-                volume_icon.src = 'icons/volume_off_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg'
+                volume_icon.src = config.resource_path('icons/volume_off_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg')
 
             page.update()
 
     volume_slider = ft.Slider(
         min=0,
         max=1,
-        value=0.1,
+        value=1,
         on_change=volume_slider_changed,
         active_color="#FE3C79",
         inactive_color="#EBD0E1",
@@ -612,7 +614,7 @@ def music_player(page: ft.Page):
                 config.current_volume = audio1.volume
                 audio1.volume = 0
                 volume_slider.value = 0
-                volume_icon.src = 'icons/volume_off_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg'
+                volume_icon.src = config.resource_path('icons/volume_off_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg')
 
             # вернуть громкость если трек в муте
             elif audio1.volume == 0:
@@ -623,7 +625,7 @@ def music_player(page: ft.Page):
             page.update()
 
     volume_icon = ft.Image(
-        src='icons/volume_up_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg',
+        src=config.resource_path('icons/volume_up_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg'),
         width=45,
         height=45,
     )
@@ -635,15 +637,17 @@ def music_player(page: ft.Page):
         # _.data -> completed
 
         if _.data == 'playing':
-            play_pouse_icon.src = "icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"
+            play_pouse_icon.src = config.resource_path("icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
 
         elif _.data == 'paused':
-            play_pouse_icon.src = "icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"
+            play_pouse_icon.src = config.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
 
         elif _.data == 'completed':
             if config.play_mode == 'default':
                 audio1.seek(0)
-                play_pouse_icon.src = "icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"
+                play_pouse_icon.src = config.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
+            else:
+                next_track(_)
 
         page.update()
 
@@ -654,7 +658,7 @@ def music_player(page: ft.Page):
     )
 
     play_pouse_icon = ft.Image(
-        src="icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg",
+        src=config.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
         width=45,
         height=45,
     )
@@ -709,7 +713,7 @@ def music_player(page: ft.Page):
 
     # кнопка назад
     previous_icon = ft.Image(
-        src="icons/arrow_back_ios.svg",
+        src=config.resource_path("icons/arrow_back_ios.svg"),
         width=25,
         height=25,
         color="#FE3C79",
@@ -724,7 +728,7 @@ def music_player(page: ft.Page):
 
     # кнопка вперед
     next_icon = ft.Image(
-        src="icons/arrow_forward_ios.svg",
+        src=config.resource_path("icons/arrow_forward_ios.svg"),
         width=25,
         height=25,
         color="#FE3C79",
@@ -738,6 +742,8 @@ def music_player(page: ft.Page):
     )
 
     def current_play_mode_handl(_):
+        random.seed(time.time())
+
         if config.play_mode == 'repeat':
             audio1.seek(0)
             audio1.play()
@@ -777,7 +783,7 @@ def music_player(page: ft.Page):
         page.update()
 
     repeat_icon = ft.Image(
-        src="icons/repeat.svg",
+        src=config.resource_path("icons/repeat.svg"),
         width=45,
         height=45,
         color='#EBD0E1'
@@ -792,7 +798,7 @@ def music_player(page: ft.Page):
     )
 
     shuffle_icon = ft.Image(
-        src="icons/shuffle.svg",
+        src=config.resource_path("icons/shuffle.svg"),
         width=45,
         height=45,
         color='#EBD0E1'
@@ -806,16 +812,46 @@ def music_player(page: ft.Page):
         on_click=lambda e, mode='shuffle': current_play_mode_icon_handl(e, mode),
     )
 
+    # показать длительность трека
+    def ms_to_time(ms: int) -> str:
+        s = ms // 1000
+        m = s // 60
+        s = s % 60
+        return f"{m}:{s:02}"
+
+    song_duration_text = ft.Text(
+        '0:00',
+        style=ft.TextStyle(
+            color="#EBD0E1",
+            font_family="Gabarito",
+            size=25,
+            weight=ft.FontWeight.BOLD,
+        ),
+    )
+    song_current_position_text = ft.Text(
+        '0:00',
+        style=ft.TextStyle(
+            color="#EBD0E1",
+            font_family="Gabarito",
+            size=25,
+            weight=ft.FontWeight.BOLD,
+        ),
+    )
+
     audio_controls = ft.Container(
         content=ft.Column(
             controls=[
                 ft.Row(
                     controls=[
+                        song_current_position_text,
+
                         ft.Container(
                             content=audio_slider,
                             alignment=ft.alignment.center,
                             expand=True,
                         ),
+
+                        song_duration_text,
 
                         ft.Container(
                             content=volume_slider,
@@ -898,7 +934,7 @@ def music_player(page: ft.Page):
     # кнопка выбора аудиофайла / переход на страницу редактирования
     find_audio = ft.Container(
         content=ft.Image(
-            src="icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg",
+            src=config.resource_path("icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
             width=55,
             height=55,
         ),
@@ -933,7 +969,7 @@ def music_player(page: ft.Page):
     # кнопка "вернуться к странице скачивания"
     to_download_page_button = ft.Container(
         content=ft.Image(
-            src="icons/home_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg",
+            src=config.resource_path("icons/home_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
             width=55,
             height=55,
             color='#EBD0E1'
@@ -976,6 +1012,10 @@ def music_player(page: ft.Page):
     def blur_image_bytes(input_bytes, format="JPEG", radius=20):
         image = Image.open(BytesIO(input_bytes))
 
+        # jpeg не может работать с альфа каналом поэтому конвертация в rgb вместо rgba
+        if image.mode in ("RGBA", "LA") and format.upper() in ("JPEG", "JPG"):
+            image = image.convert("RGB")
+
         # нужно ресайзнуть картинку, чтобы блюр сработал адекватно
         # иначе при больших разрешениях блюр незаметен
         image = image.resize((640, 640), Image.LANCZOS)
@@ -1006,7 +1046,7 @@ def music_player(page: ft.Page):
 
 
     background_image = ft.DecorationImage(
-        src="color/Desktop - 1.png",
+        src=config.resource_path("color/Desktop - 1.png"),
         fit=ft.ImageFit.COVER,
     )
     background = ft.BoxDecoration(

@@ -27,7 +27,7 @@ def edit_data(page: ft.Page):
 
 
     def see_change_icon(e):
-        if cover_image.src != "color/icon_sq.png":
+        if cover_image.src != config.resource_path("color/icon_sq.png"):
             edit_cover_icon.visible = not edit_cover_icon.visible
             if cover_image.opacity != 0.5:
                 cover_image.opacity = 0.5
@@ -36,7 +36,7 @@ def edit_data(page: ft.Page):
             page.update()
 
     cover_image = ft.Image(
-        src="color/icon_sq.png",
+        src=config.resource_path("color/icon_sq.png"),
         width=420,
         height=420,
         border_radius=30,
@@ -46,7 +46,7 @@ def edit_data(page: ft.Page):
     # pops up when hovered on cover
     edit_cover_icon = ft.Container(
         content=ft.Image(
-            src="icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg",
+            src=config.resource_path("icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
             width=250,
             height=250,
             border_radius=30,
@@ -128,7 +128,7 @@ def edit_data(page: ft.Page):
     # редактировать название аудио в метаданных
     def edit_name_handl(e):
         # это все нужно чтобы мутаген без проблем изменил метаданные
-        play_pouse_icon.src = "icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"
+        play_pouse_icon.src = config.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
         audio1.pause()
         audio1.seek(0)
         audio1.release()
@@ -253,16 +253,16 @@ def edit_data(page: ft.Page):
         # если трек не играет, то включить
         if audio1.get_current_position() == 0:
             audio1.play()
-            play_pouse_icon.src = "icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"
+            play_pouse_icon.src = config.resource_path("icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
             page.update()
             return
 
         # если трек уже играет, то поставить на паузу
-        if play_pouse_icon.src == "icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg":
-            play_pouse_icon.src = "icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"
+        if play_pouse_icon.src == config.resource_path("icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"):
+            play_pouse_icon.src = config.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
             audio1.pause()
         else:
-            play_pouse_icon.src = "icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"
+            play_pouse_icon.src = config.resource_path("icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
             audio1.resume()
         page.update()
 
@@ -291,7 +291,7 @@ def edit_data(page: ft.Page):
     page.overlay.append(audio1)
 
     play_pouse_icon = ft.Image(
-        src="icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg",
+        src=config.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
         width=60,
         height=60
     )
@@ -339,7 +339,7 @@ def edit_data(page: ft.Page):
     # кнопка "вернуться к странице скачивания"
     to_download_page_button = ft.Container(
         content=ft.Image(
-            src="icons/home_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg",
+            src=config.resource_path("icons/home_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
             width=55,
             height=55,
             color='#EBD0E1'
@@ -393,7 +393,7 @@ def edit_data(page: ft.Page):
 
     background = ft.BoxDecoration(
         image=ft.DecorationImage(
-            src="color/Desktop - 1.png",
+            src=config.resource_path("color/Desktop - 1.png"),
             fit=ft.ImageFit.COVER
         )
     )

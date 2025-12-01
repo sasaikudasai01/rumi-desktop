@@ -139,7 +139,7 @@ def startview(page: ft.Page):
             # status: finished
             # status: downloading
             if is_no_playlist:
-                download_status_text.value = f'Downloading {d["_percent_str"]}'
+                download_status_text.value = f'Downloading {d["_percent_str"].strip()}'
             else:
                 if d["status"] == 'finished':
                     config.video_counter += 1
@@ -162,7 +162,7 @@ def startview(page: ft.Page):
             'writeplaylistmetafiles': False,  # не скачивать метаданные плейлиста
             'postprocessors': ydl_opts_postprocessors,
             'noplaylist': is_no_playlist,
-            'cookiefile': 'cookies.txt',
+            'cookiefile': config.resource_path('cooks/cookies.txt'),
             'quiet': True,
             'progress_hooks': [my_hook],
         }
@@ -228,6 +228,20 @@ def startview(page: ft.Page):
 
         except Exception as e:
             print(f'Error: {e}')
+
+            with open('log_yt.txt', 'w', encoding='utf-8') as log:
+                log.write(str(e))
+
+            if 'cookie' in str(e):
+                download_status_text.value = 'Invalid cookies'
+            else:
+                download_status_text.value = 'Error'
+
+            page.update()
+            time.sleep(5)
+            download_status_text.value = ' '
+            page.update()
+            config.video_counter = 0
 
     def download_soundcloud(_):
         download_status_text.value = f'Downloading...'
@@ -307,6 +321,16 @@ def startview(page: ft.Page):
         except Exception as e:
             print(e)
 
+            with open('log_sc.txt', 'w', encoding='utf-8') as log:
+                log.write(str(e))
+
+            download_status_text.value = 'Error'
+            page.update()
+            time.sleep(1)
+            download_status_text.value = ' '
+            page.update()
+            config.video_counter = 0
+
     # поле ввода ссылки
     text_input = ft.TextField(
         hint_text="url",
@@ -329,7 +353,7 @@ def startview(page: ft.Page):
 
     # иконка поиска
     search_icon = ft.Image(
-        src="icons/search_24dp_220918_FILL0_wght400_GRAD0_opsz24.svg",
+        src=config.resource_path("icons/search_24dp_220918_FILL0_wght400_GRAD0_opsz24.svg"),
         width=60,
         height=60,
         color="#FE3C79",
@@ -352,7 +376,11 @@ def startview(page: ft.Page):
         # показать окно скачивания ютуба
         if (text_input.value.startswith('https://youtu.be/') or
             text_input.value.startswith('https://www.youtube.com/watch?') or
-            text_input.value.startswith('https://youtube.com/playlist?')):
+            text_input.value.startswith('https://youtube.com/playlist?') or
+            text_input.value.startswith('https://youtube.com/shorts/') or
+            text_input.value.startswith('https://www.youtube.com/shorts/') or
+            text_input.value.startswith('https://rt.pornhub.com/view_video.php?') or
+            text_input.value.startswith('https://rt.pornhub.org/view_video.php?')):
 
             toggle_menu(page)
 
@@ -370,7 +398,7 @@ def startview(page: ft.Page):
 
     download_button = ft.FilledButton(
         content=ft.Image(
-            src="icons/download_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg",
+            src=config.resource_path("icons/download_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
             width=60,
             height=60,
         ),
@@ -581,7 +609,7 @@ def startview(page: ft.Page):
                     stops=[0, 1],
                     begin=ft.alignment.top_left,
                     end=ft.alignment.bottom_right,
-                )
+                ),
             ),
 
             # download buttons
@@ -652,7 +680,7 @@ def startview(page: ft.Page):
     # кнопка выбора аудиофайла
     find_audio = ft.Container(
         content=ft.Image(
-            src="icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg",
+            src=config.resource_path("icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
             width=55,
             height=55,
         ),
@@ -667,11 +695,13 @@ def startview(page: ft.Page):
 
 
     def open_music_library(_):
-        page.go('/music_player')
+        # если ничего не скачивается на данный момент
+        if download_status_text.value == ' ':
+            page.go('/music_player')
 
     music_library_button = ft.Container(
         content=ft.Image(
-            src="icons/library_music_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg",
+            src=config.resource_path("icons/library_music_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
             width=55,
             height=55,
         ),
@@ -744,7 +774,7 @@ def startview(page: ft.Page):
 
     background = ft.BoxDecoration(
         image=ft.DecorationImage(
-            src="color/Desktop - 1.png",
+            src=config.resource_path("color/Desktop - 1.png"),
             fit=ft.ImageFit.COVER
         )
     )
