@@ -1,6 +1,3 @@
-# rumi-desktop
+# rumi-desktop alpha
 
-
-
-add cookies.txt in cooks/
-
+Place the `cookies.txt` file in the `cooks/` directory.
