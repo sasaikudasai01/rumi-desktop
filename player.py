@@ -5,6 +5,9 @@ import time
 import json
 import base64
 import random
+
+from pydantic.v1.datetime_parse import parse_time
+
 import config
 from io import BytesIO
 from pathlib import Path
@@ -20,8 +23,10 @@ def music_player(page: ft.Page):
             mp3_files_str = json.load(f)
 
         config.current_mp3_files = [Path(p) for p in mp3_files_str]
+        config.all_mp3s = config.current_mp3_files.copy()
     except:
         config.current_mp3_files = None
+        config.all_mp3s = None
 
 
 
@@ -79,6 +84,7 @@ def music_player(page: ft.Page):
         alignment=ft.alignment.center,
         ink=True,
         on_click=lambda e: find_audio_files(e),
+        expand=True,
     )
 
     # элемент интерфейса с треками
@@ -984,6 +990,68 @@ def music_player(page: ft.Page):
 
 
 
+    def search_text_input_changed(_):
+        # если поле пустое вернуть все треки
+        if not search_text_input.value:
+            song_elements.controls.clear()
+            page.update()
+            config.current_mp3_files = config.all_mp3s.copy()
+            add_song_element_to_page(config.all_mp3s)
+            return
+
+    def search_text_input_submit(_):
+        temporal_found_songs = []  # список найденных треков
+
+        if config.current_mp3_files:
+            for audio_file_path in config.all_mp3s:
+                try:
+                    temp_song_profile = ID3(audio_file_path)
+                except ID3NoHeaderError:
+                    temp_song_profile = ID3()  # создаем теги, если их нет
+
+                # название трека
+                temp_song_name_text = str(temp_song_profile.get('TIT2'))
+                # артист
+                temp_song_artist_name_text = str(temp_song_profile.get('TPE1'))
+
+                # проверка на совпадение
+                # совпадения по названию
+                if search_text_input.value.lower() in temp_song_name_text.lower():
+                    temporal_found_songs.append(audio_file_path)
+
+                # совпадения по имени артиста
+                elif search_text_input.value.lower() in temp_song_artist_name_text.lower():
+                    temporal_found_songs.append(audio_file_path)
+
+                # совпадения по названию файла если нет метаданных
+                elif search_text_input.value.lower() in str(audio_file_path.stem.lower()):
+                    temporal_found_songs.append(audio_file_path)
+
+                # если совпадения есть
+                if temporal_found_songs:
+                    song_elements.controls.clear()
+                    config.current_mp3_files = temporal_found_songs
+                    add_song_element_to_page(temporal_found_songs)
+                    page.update()
+                else:
+                    song_elements.controls.clear()
+                    page.update()
+
+    # поиск трека по названию
+    search_text_input = ft.TextField(
+        hint_text="Search song",
+        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color="#40FE3C79"),
+        text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color="#FE3C79"),
+        text_size=25,
+        border_color="transparent",
+        border_radius=15,
+        bgcolor="#EBD0E1",
+        on_submit=search_text_input_submit,
+        on_change=search_text_input_changed,
+    )
+
+
+
     # основная страница со всеми элементами
     music_player_page = ft.Column(
         controls=[
@@ -996,7 +1064,10 @@ def music_player(page: ft.Page):
                         alignment=ft.alignment.top_center,
                     ),
                     ft.Column(
-                        controls=[add_audio_button, song_elements],
+                        controls=[
+                            ft.Row(controls=[add_audio_button, search_text_input,]),
+                            song_elements
+                        ],
                         expand=True,
                     ),
                     song_profile,
@@ -1025,23 +1096,6 @@ def music_player(page: ft.Page):
         output = BytesIO()
         image.save(output, format=format)
         return output.getvalue()
-
-
-
-    # управление на клавиатуре
-    def key_event(e: ft.KeyboardEvent): # воспроизведение на пробел
-        # пробел это просто пустая строка
-        if e.key == " ":
-            play(e)
-
-        elif e.key.lower() == 'm':
-            volume_muter(e)
-
-        elif e.key.lower() == "f": # полноэкранный режим
-            page.window.full_screen = not page.window.full_screen
-            page.update()
-
-    page.on_keyboard_event = key_event
 
 
 

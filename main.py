@@ -12,7 +12,7 @@ def main(page: ft.Page):
     # управление на клавиатуре
     def make_fullscreen(e: ft.KeyboardEvent):
         # полноэкранный режим
-        if e.key.lower() == "f":
+        if e.key == "F11":
             page.window.full_screen = not page.window.full_screen
             page.update()
 

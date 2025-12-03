@@ -13,6 +13,7 @@ current_volume = None # какая была громкость до мута
 current_playing_audio = None # какой трек играет на данный момент
 previous_background = None # прошлый фон
 current_mp3_files = [] # список загруженных треков на данный момент. НЕ ДОЛЖЕН быть None
+all_mp3s = [] # список всех треков
 play_mode = 'default'
 
 

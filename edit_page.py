@@ -398,13 +398,4 @@ def edit_data(page: ft.Page):
         )
     )
 
-    # управление на клавиатуре
-    def make_fullscreen(e: ft.KeyboardEvent):
-        # полноэкранный режим
-        if e.key.lower() == "f":
-            page.window.full_screen = not page.window.full_screen
-            page.update()
-
-    page.on_keyboard_event = make_fullscreen
-
     return ft.View("/edit", controls=[edit_page_ui], bgcolor=ft.Colors.TRANSPARENT, decoration=background)

@@ -779,13 +779,4 @@ def startview(page: ft.Page):
         )
     )
 
-    # управление на клавиатуре
-    def make_fullscreen(e: ft.KeyboardEvent):
-        # полноэкранный режим
-        if e.key.lower() == "f":
-            page.window.full_screen = not page.window.full_screen
-            page.update()
-
-    page.on_keyboard_event = make_fullscreen
-
     return ft.View("/", controls=[main_page], bgcolor=ft.Colors.TRANSPARENT, decoration=background)
