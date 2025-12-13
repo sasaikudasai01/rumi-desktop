@@ -321,7 +321,7 @@ This allows for **fine-grained control** of the appearance of sliders, buttons, 
 - **High RAM usage** when a large number of tracks are added.
 
 The application is still in **alpha stage**, so it may **experience crashes, glitches, or other unexpected behavior**.
-It is **not yet a full-featured music player**, and long-term continuous use may expose bugs that will be **addressed in future updates**.
+It is **not yet a full-featured music player**, and long-term continuous use may expose bugs that will be **fixed in future updates**.
 
 Using `dynamic_color` in `config.py` is a temporary solution that will be replaced in the future with a more efficient and optimized option.
 
