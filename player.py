@@ -337,7 +337,7 @@ def music_player(page: ft.Page):
 
     def see_edit_icon(e):
         if cfg.current_playing_audio:
-            profile_song_edit_icon.visible = not profile_song_edit_icon.visible
+            profile_song_edit_icon_container.visible = not profile_song_edit_icon_container.visible
             if profile_song_picture.opacity != 0.5:
                 profile_song_picture.opacity = 0.5
             else:
@@ -396,14 +396,15 @@ def music_player(page: ft.Page):
             page.update()
 
     # инфо о треке справа
-    profile_song_edit_icon = ft.Container(
-        content=ft.Image(
-            src=cfg.resource_path("icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
-            color=cfg.not_main_color_hex,
-            width=250,
-            height=250,
-            border_radius=30,
-        ),
+    profile_song_edit_icon_image = ft.Image(
+        src=cfg.resource_path("icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+        color=cfg.not_main_color_hex,
+        width=250,
+        height=250,
+        border_radius=30,
+    )
+    profile_song_edit_icon_container = ft.Container(
+        content=profile_song_edit_icon_image,
         alignment=ft.alignment.center,
         visible=False,
     )
@@ -414,7 +415,7 @@ def music_player(page: ft.Page):
     )
     profile_song_picture_container = ft.Container(
         content=ft.Stack(
-                controls=[profile_song_picture, profile_song_edit_icon,],
+                controls=[profile_song_picture, profile_song_edit_icon_container,],
                 alignment=ft.alignment.center,
         ),
         width=420,
@@ -425,6 +426,7 @@ def music_player(page: ft.Page):
         on_hover=lambda e: see_edit_icon(e),
         on_click=lambda e: edit_current_song(e),
     )
+    cfg.dynamic_color["color_not_main"].append(profile_song_edit_icon_image)
 
     profile_song_name_text = ft.Text(
         'Song',

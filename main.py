@@ -8,7 +8,7 @@ from settings_page import settings
 def main(page: ft.Page):
     page.title = "rumi-desktop"
     page.window.icon = cfg.resource_path("color/icon_sq.ico")
-    page.window.maximized = False
+    page.window.maximized = True
 
     # управление на клавиатуре
     def make_fullscreen(e: ft.KeyboardEvent):
