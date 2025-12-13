@@ -9,7 +9,7 @@ This README explains **how the project works internally**, how files interact, a
 
 ## Core Features
 
-* Download audio and video (SoundCloud / YouTube / YouTube playlists via yt-dlp)
+* Download audio and video (SoundCloud / YouTube / YouTube playlists / adult YouTube🫣 via yt-dlp)
 * Local MP3 library management
 * Built-in music player (play, pause, seek, volume)
 * Shuffle / repeat modes
@@ -159,12 +159,12 @@ Ensures strict `#RRGGBB` format.
 
 ### Responsibilities
 
-* Download audio using `yt-dlp`
+* Download audio and video using `yt-dlp`
 * Track download progress
 
 ### Output
 
-* MP3 files saved to user-selected directory
+* MP3 and MP4 files saved to user-selected directory
 
 ---
 
