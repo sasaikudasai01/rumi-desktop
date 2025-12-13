@@ -9,7 +9,7 @@ This README explains **how the project works internally**, how files interact, a
 
 ## Core Features
 
-* Download audio (SoundCloud / YouTube / YouTube playlists via yt-dlp)
+* Download audio and video (SoundCloud / YouTube / YouTube playlists via yt-dlp)
 * Local MP3 library management
 * Built-in music player (play, pause, seek, volume)
 * Shuffle / repeat modes
