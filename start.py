@@ -224,7 +224,7 @@ def startview(page: ft.Page):
 
             # сохранение ошибки
             with open('errors.log', 'a', encoding='utf-8') as log:
-                log.write(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} YouTube {str(e)}\n')
+                log.write(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} (YouTube downloading) {str(e)}\n')
 
             if 'cookie' in str(e):
                 download_status_text.value = 'Invalid cookies'
@@ -317,7 +317,7 @@ def startview(page: ft.Page):
 
             # сохранение ошибки
             with open('errors.log', 'a', encoding='utf-8') as log:
-                log.write(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} SoundCloud {str(e)}\n')
+                log.write(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} (SoundCloud) {str(e)}\n')
 
             download_status_text.value = 'Error'
             page.update()
@@ -368,18 +368,14 @@ def startview(page: ft.Page):
     def on_directory_picked(e: ft.FilePickerResultEvent):
         cfg.download_path = e.path
 
-        # показать окно скачивания ютуба
-        if (text_input.value.startswith('https://youtu.be/') or
-            text_input.value.startswith('https://www.youtube.com/watch?') or
-            text_input.value.startswith('https://youtube.com/playlist?') or
-            text_input.value.startswith('https://youtube.com/shorts/') or
-            text_input.value.startswith('https://www.youtube.com/shorts/') or
-            text_input.value.startswith('https://rt.pornhub.com/view_video.php?') or
-            text_input.value.startswith('https://rt.pornhub.org/view_video.php?')):
+        # показать окно скачивания
+        if ("youtu.be" in text_input.value or
+            "youtube.com" in text_input.value or
+            "pornhub" in text_input.value):
 
             toggle_menu(page)
 
-        elif text_input.value.startswith('https://soundcloud.com/'):
+        elif "soundcloud.com" in text_input.value:
             download_soundcloud(e)
 
     directory_picker = ft.FilePicker(on_result=on_directory_picked)
