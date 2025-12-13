@@ -249,13 +249,12 @@ def music_player(page: ft.Page):
             mp3_files_strr = json.load(f)
 
         mp3_files_strr.remove(str(path))
-        cfg.current_mp3_files = [Path(fail) for fail in mp3_files_strr]
-
-        mp3_files_path = [Path(p) for p in mp3_files_strr]
+        cfg.all_mp3s = [Path(fail) for fail in mp3_files_strr]
+        cfg.current_mp3_files = cfg.all_mp3s.copy()
 
         # обновление списка путей
         with open("mp3_files.json", "w", encoding="utf-8") as f:
-            json.dump([str(p) for p in mp3_files_path], f, ensure_ascii=False, indent=2)
+            json.dump([str(p) for p in cfg.all_mp3s], f, ensure_ascii=False, indent=2)
 
         # если треков больше не осталось
         if not mp3_files_strr:
@@ -269,6 +268,9 @@ def music_player(page: ft.Page):
             profile_song_picture.src_base64 = None
             profile_song_picture.src = cfg.resource_path('color/icon_sq.png')
             background_image.opacity = 1
+
+            cfg.current_mp3_files.clear()
+            cfg.all_mp3s.clear()
 
             song_elements.controls.append(add_path)
             add_audio_button.visible = False
@@ -308,25 +310,27 @@ def music_player(page: ft.Page):
                 song_elements.controls.remove(add_path) # убрать кнопку добавить путь
                 add_audio_button.visible = True
 
-                cfg.current_mp3_files = files
+                cfg.all_mp3s = files.copy()
+                cfg.current_mp3_files = files.copy()
 
                 # сохранение в json
                 with open("mp3_files.json", "a", encoding="utf-8") as f:
                     json.dump([str(p) for p in files], f, ensure_ascii=False, indent=2)
 
-                add_song_element_to_page(cfg.current_mp3_files)
+                add_song_element_to_page(cfg.all_mp3s)
 
             except Exception as e:
                 if str(e) == 'list.remove(x): x not in list':
-                    new_paths = list(set(files) - set(cfg.current_mp3_files)) # есть ли новые треки
+                    new_paths = list(set(files) - set(cfg.all_mp3s)) # есть ли новые треки
 
                     # добавить только если есть новые треки
                     if new_paths:
-                        cfg.current_mp3_files.extend(Path(file) for file in files if file not in cfg.current_mp3_files)
+                        cfg.all_mp3s.extend(Path(file) for file in files if file not in cfg.all_mp3s)
+                        cfg.current_mp3_files = cfg.all_mp3s.copy()
 
                         # сохранение в json
                         with open("mp3_files.json", "w", encoding="utf-8") as f:
-                            json.dump([str(p) for p in cfg.current_mp3_files], f, ensure_ascii=False, indent=2)
+                            json.dump([str(p) for p in cfg.all_mp3s], f, ensure_ascii=False, indent=2)
 
                         add_song_element_to_page(new_paths)
 
@@ -771,9 +775,10 @@ def music_player(page: ft.Page):
             temp_list = cfg.current_mp3_files.copy()
             temp_list.remove(cfg.current_playing_audio)
 
-            new_song_to_play = random.choice(temp_list)
+            if temp_list:
+                new_song_to_play = random.choice(temp_list)
 
-            choose_audio_to_play(_, new_song_to_play)
+                choose_audio_to_play(_, new_song_to_play)
 
         page.update()
 
