@@ -80,7 +80,7 @@ def edit_data(page: ft.Page):
     # song name
     song_name_input = ft.TextField(
         hint_text="Song name",
-        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color="#EBD0E1"),
+        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=config.not_main_color_hex),
         text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color="#FFFFFF"),
         text_size=128,
         border_color="transparent",
@@ -96,8 +96,8 @@ def edit_data(page: ft.Page):
     # artist name
     artist_name_input = ft.TextField(
         hint_text="Artist",
-        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color="#EBD0E1"),
-        text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color="#EBD0E1"),
+        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=config.not_main_color_hex),
+        text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=config.not_main_color_hex),
         text_size=64,
         border_color="transparent",
         border_radius=30,
@@ -112,8 +112,8 @@ def edit_data(page: ft.Page):
     # album name
     album_name_input = ft.TextField(
         hint_text="Album",
-        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color="#EBD0E1"),
-        text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color="#EBD0E1"),
+        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=config.not_main_color_hex),
+        text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=config.not_main_color_hex),
         text_size=64,
         border_color="transparent",
         border_radius=30,
@@ -185,7 +185,7 @@ def edit_data(page: ft.Page):
             # visible button
             ft.FilledButton(
                 ' ',
-                bgcolor="#FE3C79",
+                bgcolor=config.main_color_hex,
                 style=ft.ButtonStyle(
                     shape=ft.ContinuousRectangleBorder(radius=60),
                 ),
@@ -198,7 +198,7 @@ def edit_data(page: ft.Page):
                 content=ft.Text(
                     "Apply",
                     style=ft.TextStyle(
-                        color="#EBD0E1",
+                        color=config.not_main_color_hex,
                         font_family="Gabarito",
                         size=30,
                         weight=ft.FontWeight.BOLD
@@ -278,8 +278,8 @@ def edit_data(page: ft.Page):
     audio_slider = ft.Slider(
         min=0,
         on_change=slider_changed,
-        active_color="#FE3C79",
-        inactive_color="#EBD0E1",
+        active_color=config.main_color_hex,
+        inactive_color=config.not_main_color_hex,
     )
 
     audio1 = fa.Audio(
@@ -292,6 +292,7 @@ def edit_data(page: ft.Page):
 
     play_pouse_icon = ft.Image(
         src=config.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+        color=config.not_main_color_hex,
         width=60,
         height=60
     )
@@ -322,7 +323,7 @@ def edit_data(page: ft.Page):
     apply_status_text = ft.Text(
         ' ',
         style=ft.TextStyle(
-            color="#EBD0E1",
+            color=config.not_main_color_hex,
             font_family="Gabarito",
             size=80,
             weight=ft.FontWeight.BOLD
@@ -342,7 +343,7 @@ def edit_data(page: ft.Page):
             src=config.resource_path("icons/home_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
             width=55,
             height=55,
-            color='#EBD0E1'
+            color=config.not_main_color_hex
         ),
         width=55,
         height=55,
@@ -393,9 +394,22 @@ def edit_data(page: ft.Page):
 
     background = ft.BoxDecoration(
         image=ft.DecorationImage(
-            src=config.resource_path("color/Desktop - 1.png"),
+            src=config.wallpaper,
             fit=ft.ImageFit.COVER
         )
     )
+
+
+
+    # управление на клавиатуре
+    def make_fullscreen(e: ft.KeyboardEvent):
+        # полноэкранный режим
+        if e.key == "F11":
+            page.window.full_screen = not page.window.full_screen
+            page.update()
+
+    page.on_keyboard_event = make_fullscreen
+
+
 
     return ft.View("/edit", controls=[edit_page_ui], bgcolor=ft.Colors.TRANSPARENT, decoration=background)

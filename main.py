@@ -3,11 +3,12 @@ import config as cfg
 from start import startview
 from edit_page import edit_data
 from player import music_player
+from settings_page import settings
 
 def main(page: ft.Page):
     page.title = "rumi-desktop"
     page.window.icon = cfg.resource_path("color/icon_sq.ico")
-    page.window.maximized = True
+    page.window.maximized = False
 
     # управление на клавиатуре
     def make_fullscreen(e: ft.KeyboardEvent):
@@ -26,6 +27,8 @@ def main(page: ft.Page):
             page.views.append(edit_data(page))
         elif page.route == "/music_player":
             page.views.append(music_player(page))
+        elif page.route == "/settings":
+            page.views.append(settings(page))
 
         #page.views.append(music_player(page))
         page.update()

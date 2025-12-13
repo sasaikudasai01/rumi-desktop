@@ -1,14 +1,14 @@
 import flet as ft
+import config as cfg
 import time
 import base64
-import config
 from yt_dlp import YoutubeDL
 from PIL import Image # редактирование изображения
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, error, TIT2, TPE1, TALB, ID3NoHeaderError # изменение метаданных трека
 import os
+from datetime import datetime
 
-import json
 
 
 def startview(page: ft.Page):
@@ -142,27 +142,24 @@ def startview(page: ft.Page):
                 download_status_text.value = f'Downloading {d["_percent_str"].strip()}'
             else:
                 if d["status"] == 'finished':
-                    config.video_counter += 1
-                download_status_text.value = f'Video [{config.video_counter}] {d["_percent_str"]}'
+                    cfg.video_counter += 1
+                download_status_text.value = f'Video [{cfg.video_counter}] {d["_percent_str"]}'
             page.update()
-            ### для проверок ##############################################
-            #with open("progress_log.json", "a", encoding="utf-8") as f:
-            #    json.dump(d, f, ensure_ascii=False, indent=2)
 
 
 
-        # параметры для скачиваемого аудио
+        # параметры для скачиваемого файла
         ydl_opts = {
             'format': ydl_opts_format,  # качество аудио
             'writethumbnail': download_img,
-            'outtmpl': f'{config.download_path}/%(title)s.%(ext)s',  # название
+            'outtmpl': f'{cfg.download_path}/%(title)s.%(ext)s',  # название
             'restrictfilenames': True,  # избавление от лишних символов в названии
             'writedescription': False,  # не скачивать описание видео
             'writeannotations': False,  # не скачивать аннотации
             'writeplaylistmetafiles': False,  # не скачивать метаданные плейлиста
             'postprocessors': ydl_opts_postprocessors,
             'noplaylist': is_no_playlist,
-            'cookiefile': config.resource_path('cooks/cookies.txt'),
+            'cookiefile': cfg.resource_path('cooks/cookies.txt'),
             'quiet': True,
             'progress_hooks': [my_hook],
         }
@@ -175,10 +172,6 @@ def startview(page: ft.Page):
         try:
             with YoutubeDL(ydl_opts) as ydl:
                 yt_video_info = ydl.extract_info(url, download=True)
-                ### для проверок ###################################
-                # sanitized = ydl.sanitize_info(temp_info)
-                #with open("info.json", "w", encoding="utf-8") as f:
-                #   json.dump(sanitized, f, ensure_ascii=False, indent=2)
 
             # если это плейлист, то ydl возвращает список словарей entries
             if 'entries' in yt_video_info:  # проверка плейлист ли это
@@ -224,13 +217,14 @@ def startview(page: ft.Page):
             download_status_text.value = ' '
             page.update()
 
-            config.video_counter = 0
+            cfg.video_counter = 0
 
         except Exception as e:
             print(f'Error: {e}')
 
-            with open('log_yt.txt', 'w', encoding='utf-8') as log:
-                log.write(str(e))
+            # сохранение ошибки
+            with open('errors.log', 'a', encoding='utf-8') as log:
+                log.write(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} YouTube {str(e)}\n')
 
             if 'cookie' in str(e):
                 download_status_text.value = 'Invalid cookies'
@@ -241,7 +235,7 @@ def startview(page: ft.Page):
             time.sleep(5)
             download_status_text.value = ' '
             page.update()
-            config.video_counter = 0
+            cfg.video_counter = 0
 
     def download_soundcloud(_):
         download_status_text.value = f'Downloading...'
@@ -257,7 +251,7 @@ def startview(page: ft.Page):
             "format": "bestaudio/best",
             "writethumbnail": True,
             "convertthumbnails": "jpg",
-            "outtmpl": f'{config.download_path}/%(title)s.%(ext)s',  # сохранить с названием
+            "outtmpl": f'{cfg.download_path}/%(title)s.%(ext)s',  # сохранить с названием
             "noplaylist": True,
             "hls_prefer_native": True,  # форсируем HLS
             "postprocessors": [
@@ -321,21 +315,22 @@ def startview(page: ft.Page):
         except Exception as e:
             print(e)
 
-            with open('log_sc.txt', 'w', encoding='utf-8') as log:
-                log.write(str(e))
+            # сохранение ошибки
+            with open('errors.log', 'a', encoding='utf-8') as log:
+                log.write(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} SoundCloud {str(e)}\n')
 
             download_status_text.value = 'Error'
             page.update()
             time.sleep(1)
             download_status_text.value = ' '
             page.update()
-            config.video_counter = 0
+            cfg.video_counter = 0
 
     # поле ввода ссылки
     text_input = ft.TextField(
         hint_text="url",
-        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color="#40FE3C79"),
-        text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color="#FE3C79"),
+        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=f"#40{cfg.main_color_hex.replace('#', '')}"),
+        text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=cfg.main_color_hex),
         text_size=45,
         border_color="transparent",
         border_radius=80,
@@ -343,7 +338,7 @@ def startview(page: ft.Page):
     )
     search_field = ft.FilledButton(
         ' ',
-        bgcolor="#EBD0E1",
+        bgcolor=cfg.not_main_color_hex,
         style=ft.ButtonStyle(
             shape=ft.ContinuousRectangleBorder(radius=60),
         ),
@@ -353,10 +348,10 @@ def startview(page: ft.Page):
 
     # иконка поиска
     search_icon = ft.Image(
-        src=config.resource_path("icons/search_24dp_220918_FILL0_wght400_GRAD0_opsz24.svg"),
+        src=cfg.resource_path("icons/search_24dp_220918_FILL0_wght400_GRAD0_opsz24.svg"),
         width=60,
         height=60,
-        color="#FE3C79",
+        color=cfg.main_color_hex,
     )
 
 
@@ -371,7 +366,7 @@ def startview(page: ft.Page):
 
     # сохранение пути к аудио файлу и распределение ссылки на правильные функции
     def on_directory_picked(e: ft.FilePickerResultEvent):
-        config.download_path = e.path
+        cfg.download_path = e.path
 
         # показать окно скачивания ютуба
         if (text_input.value.startswith('https://youtu.be/') or
@@ -392,19 +387,21 @@ def startview(page: ft.Page):
 
     # show youtube download menu
     def toggle_menu(e):
-        if config.download_path:
+        if cfg.download_path:
             popup.visible = not popup.visible
             page.update()
 
+    download_button_image = ft.Image(
+        src=cfg.resource_path("icons/download_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+        color=cfg.not_main_color_hex,
+        width=60,
+        height=60,
+    )
     download_button = ft.FilledButton(
-        content=ft.Image(
-            src=config.resource_path("icons/download_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
-            width=60,
-            height=60,
-        ),
+        content=download_button_image,
         width=80,
         height=80,
-        bgcolor="#FE3C79",
+        bgcolor=cfg.main_color_hex,
         style=ft.ButtonStyle(
             shape=ft.ContinuousRectangleBorder(radius=60),
         ),
@@ -418,7 +415,7 @@ def startview(page: ft.Page):
             # visible button
             ft.FilledButton(
                 ' ',
-                bgcolor="#FE3C79",
+                bgcolor=cfg.main_color_hex,
                 style=ft.ButtonStyle(
                     shape=ft.ContinuousRectangleBorder(radius=60),
                 ),
@@ -431,7 +428,7 @@ def startview(page: ft.Page):
                 content=ft.Text(
                     "Audio",
                     style=ft.TextStyle(
-                        color="#EBD0E1",
+                        color=cfg.not_main_color_hex,
                         font_family="Gabarito",
                         size=30,
                         weight=ft.FontWeight.BOLD
@@ -461,7 +458,7 @@ def startview(page: ft.Page):
             # visible button
             ft.FilledButton(
                 ' ',
-                bgcolor="#FE3C79",
+                bgcolor=cfg.main_color_hex,
                 style=ft.ButtonStyle(
                     shape=ft.ContinuousRectangleBorder(radius=60),
                 ),
@@ -474,7 +471,7 @@ def startview(page: ft.Page):
                 content=ft.Text(
                     "Audio (cover)",
                     style=ft.TextStyle(
-                        color="#EBD0E1",
+                        color=cfg.not_main_color_hex,
                         font_family="Gabarito",
                         size=30,
                         weight=ft.FontWeight.BOLD
@@ -505,7 +502,7 @@ def startview(page: ft.Page):
             # visible button
             ft.FilledButton(
                 ' ',
-                bgcolor="#FE3C79",
+                bgcolor=cfg.main_color_hex,
                 style=ft.ButtonStyle(
                     shape=ft.ContinuousRectangleBorder(radius=60),
                 ),
@@ -518,7 +515,7 @@ def startview(page: ft.Page):
                 content=ft.Text(
                     "Video",
                     style=ft.TextStyle(
-                        color="#EBD0E1",
+                        color=cfg.not_main_color_hex,
                         font_family="Gabarito",
                         size=30,
                         weight=ft.FontWeight.BOLD
@@ -549,7 +546,7 @@ def startview(page: ft.Page):
             # border for visible button
             ft.FilledButton(
                 ' ',
-                bgcolor="#FE3C79",
+                bgcolor=cfg.main_color_hex,
                 style=ft.ButtonStyle(
                     shape=ft.ContinuousRectangleBorder(radius=60),
                 ),
@@ -560,7 +557,7 @@ def startview(page: ft.Page):
             # visible button
             ft.FilledButton(
                 ' ',
-                bgcolor="#EBD0E1",
+                bgcolor=cfg.not_main_color_hex,
                 style=ft.ButtonStyle(
                     shape=ft.ContinuousRectangleBorder(radius=60),
                 ),
@@ -573,7 +570,7 @@ def startview(page: ft.Page):
                 content=ft.Text(
                     "Cancel",
                     style=ft.TextStyle(
-                        color="#FE3C79",
+                        color=cfg.main_color_hex,
                         font_family="Gabarito",
                         size=30,
                         weight=ft.FontWeight.BOLD
@@ -652,25 +649,25 @@ def startview(page: ft.Page):
                 # есть ли у трека обложка
                 if isinstance(tag, APIC):
                     # конвертация в base64, чтобы использовать для обложки трека
-                    config.cover_exists = base64.b64encode(tag.data).decode("utf-8")
+                    cfg.cover_exists = base64.b64encode(tag.data).decode("utf-8")
                     ### для проверок ##############################################
                     # with open("cover.jpg", "wb") as f:
                     #    f.write(tag.data)
 
                 # есть ли у трека название
                 if isinstance(tag, TIT2):
-                    config.song_name_exists = tag
+                    cfg.song_name_exists = tag
 
                 # есть ли у трека артист
                 if isinstance(tag, TPE1):
-                    config.artist_name_exists = tag
+                    cfg.artist_name_exists = tag
 
                 # есть ли у трека название альбома
                 if isinstance(tag, TALB):
-                    config.album_name_exists = tag
+                    cfg.album_name_exists = tag
 
             # сохранение пути
-            config.audio_file = e.files[0].path
+            cfg.audio_file = e.files[0].path
             page.go('/edit')
             page.update()
 
@@ -680,7 +677,8 @@ def startview(page: ft.Page):
     # кнопка выбора аудиофайла
     find_audio = ft.Container(
         content=ft.Image(
-            src=config.resource_path("icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+            src=cfg.resource_path("icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+            color=cfg.not_main_color_hex,
             width=55,
             height=55,
         ),
@@ -701,7 +699,8 @@ def startview(page: ft.Page):
 
     music_library_button = ft.Container(
         content=ft.Image(
-            src=config.resource_path("icons/library_music_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+            src=cfg.resource_path("icons/library_music_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+            color=cfg.not_main_color_hex,
             width=55,
             height=55,
         ),
@@ -715,10 +714,27 @@ def startview(page: ft.Page):
 
 
 
+    settings_button = ft.Container(
+        content=ft.Image(
+            src=cfg.resource_path("icons/settings_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+            color=cfg.not_main_color_hex,
+            width=55,
+            height=55,
+        ),
+        width=55,
+        height=55,
+        border_radius=15,
+        alignment=ft.alignment.center,
+        ink=True,
+        on_click=lambda _, current_page=page: cfg.open_settings(_, current_page),
+    )
+
+
+
     download_status_text = ft.Text(
         ' ',
         style=ft.TextStyle(
-            color="#EBD0E1",
+            color=cfg.not_main_color_hex,
             font_family="Gabarito",
             size=80,
             weight=ft.FontWeight.BOLD
@@ -765,8 +781,7 @@ def startview(page: ft.Page):
             ),
             popup,
             ft.Row(
-                controls=[find_audio,
-                          music_library_button]
+                controls=[find_audio, music_library_button, settings_button]
             )
         ],
         expand=True,
@@ -774,9 +789,22 @@ def startview(page: ft.Page):
 
     background = ft.BoxDecoration(
         image=ft.DecorationImage(
-            src=config.resource_path("color/Desktop - 1.png"),
+            src=cfg.wallpaper,
             fit=ft.ImageFit.COVER
         )
     )
+
+
+
+    # управление на клавиатуре
+    def make_fullscreen(e: ft.KeyboardEvent):
+        # полноэкранный режим
+        if e.key == "F11":
+            page.window.full_screen = not page.window.full_screen
+            page.update()
+
+    page.on_keyboard_event = make_fullscreen
+
+
 
     return ft.View("/", controls=[main_page], bgcolor=ft.Colors.TRANSPARENT, decoration=background)

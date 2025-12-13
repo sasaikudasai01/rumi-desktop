@@ -13,8 +13,7 @@ dist/
 
 # Runtime files
 *.log
-*.txt
-mp3_files.json
+*.json
 cooks/
 audio/
 

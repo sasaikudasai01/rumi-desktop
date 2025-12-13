@@ -1,16 +1,16 @@
 import flet as ft
 import flet_audio as fa
+import config as cfg
 import os
 import time
 import json
 import base64
 import random
-
-from pydantic.v1.datetime_parse import parse_time
-
-import config
+import colorsys
+import numpy as np
 from io import BytesIO
 from pathlib import Path
+from datetime import datetime
 from PIL import Image, ImageFilter # для размытия изображения на фоне
 from mutagen.id3 import ID3, APIC, TIT2, TPE1, ID3NoHeaderError, TALB # метаданные
 
@@ -22,17 +22,18 @@ def music_player(page: ft.Page):
         with open("mp3_files.json", "r", encoding="utf-8") as f:
             mp3_files_str = json.load(f)
 
-        config.current_mp3_files = [Path(p) for p in mp3_files_str]
-        config.all_mp3s = config.current_mp3_files.copy()
+        cfg.all_mp3s = [Path(p) for p in mp3_files_str]
+        cfg.current_mp3_files =cfg.all_mp3s.copy()
     except:
-        config.current_mp3_files = None
-        config.all_mp3s = None
+        cfg.current_mp3_files = None
+        cfg.all_mp3s = None
 
 
 
     # добавить путь к аудио файлам
     add_path_icon = ft.Image(
-        src=config.resource_path('icons/plus.svg'),
+        src=cfg.resource_path('icons/plus.svg'),
+        color=cfg.not_main_color_hex,
         width=420,
     )
     add_path = ft.Container(
@@ -43,7 +44,7 @@ def music_player(page: ft.Page):
                 ft.Text(
                     'Add audios',
                     style=ft.TextStyle(
-                        color="#EBD0E1",
+                        color=cfg.not_main_color_hex,
                         font_family="Gabarito",
                         size=55,
                         weight=ft.FontWeight.BOLD,
@@ -59,25 +60,24 @@ def music_player(page: ft.Page):
     )
 
     # кнопка добавить треки на странице где уже есть треки
+    add_audio_icon = ft.Image(
+        src=cfg.resource_path("icons/plus.svg"),
+        color=cfg.not_main_color_hex,
+        width=65,
+        height=65,
+    )
+    add_audios_text = ft.Text(
+        'Add audios',
+        style=ft.TextStyle(
+            color=cfg.not_main_color_hex,
+            font_family="Gabarito",
+            size=25,
+            weight=ft.FontWeight.BOLD,
+        ),
+    )
     add_audio_button = ft.Container(
         content=ft.Row(
-            controls=[
-                ft.Image(
-                    src=config.resource_path("icons/plus.svg"),
-                    width=65,
-                    height=65,
-                    color='#EBD0E1'
-                ),
-                ft.Text(
-                    'Add audios',
-                    style=ft.TextStyle(
-                        color="#EBD0E1",
-                        font_family="Gabarito",
-                        size=25,
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                )
-            ]
+            controls=[add_audio_icon, add_audios_text]
         ),
         height=55,
         border_radius=15,
@@ -86,6 +86,8 @@ def music_player(page: ft.Page):
         on_click=lambda e: find_audio_files(e),
         expand=True,
     )
+    cfg.dynamic_color["color_not_main"].append(add_audios_text)
+    cfg.dynamic_color["color_not_main"].append(add_audio_icon)
 
     # элемент интерфейса с треками
     song_elements = ft.Column(
@@ -100,7 +102,7 @@ def music_player(page: ft.Page):
         # если у трека есть обложка, название и артист, то показать всю инфy
         for file in mp3_files_path:
             cover_image = ft.Image(
-                src=config.resource_path("color/icon_sq.png"),
+                src=cfg.resource_path("color/icon_sq.png"),
             )
 
             # song cover container
@@ -117,6 +119,7 @@ def music_player(page: ft.Page):
             song_name_text = ft.Text(
                 'Song name',
                 style=ft.TextStyle(
+                    # в дефолтной теме цвет названия трека не cfg.main_color_hex а просто белый
                     color="#FFFFFF",
                     font_family="Gabarito",
                     size=55,
@@ -136,7 +139,7 @@ def music_player(page: ft.Page):
             artist_name_text = ft.Text(
                 'Artist',
                 style=ft.TextStyle(
-                    color="#EBD0E1",
+                    color=cfg.not_main_color_hex,
                     font_family="Gabarito",
                     size=55,
                     weight=ft.FontWeight.BOLD,
@@ -150,9 +153,11 @@ def music_player(page: ft.Page):
                 content=artist_name_text,
                 expand=True,
             )
+            cfg.dynamic_color["color_not_main"].append(artist_name_text)
 
             delete_icon = ft.Image(
-                src=config.resource_path('icons/delete.svg'),
+                src=cfg.resource_path('icons/delete.svg'),
+                color=cfg.not_main_color_hex,
                 opacity=0,
             )
             delete_song_button = ft.Container(
@@ -162,6 +167,7 @@ def music_player(page: ft.Page):
                 ink=True,
                 border_radius=25,
             )
+            cfg.dynamic_color["color_not_main"].append(delete_icon)
 
             one_song_element = ft.Container(
                 content=ft.Row(
@@ -222,6 +228,10 @@ def music_player(page: ft.Page):
             except Exception as e:
                 print(e)
 
+                # сохранение ошибки
+                with open('errors.log', 'a', encoding='utf-8') as log:
+                    log.write(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} (Trying to add songs) {str(e)}\n')
+
         page.update()
 
 
@@ -229,7 +239,7 @@ def music_player(page: ft.Page):
     # удаление трека
     def delete_song(path, element):
         # нельзя удалить трек если он играет на данный момент
-        if path == config.current_playing_audio:
+        if path == cfg.current_playing_audio:
             return
 
         # удаление элемента трека в интерфейсе
@@ -239,7 +249,7 @@ def music_player(page: ft.Page):
             mp3_files_strr = json.load(f)
 
         mp3_files_strr.remove(str(path))
-        config.current_mp3_files = [Path(fail) for fail in mp3_files_strr]
+        cfg.current_mp3_files = [Path(fail) for fail in mp3_files_strr]
 
         mp3_files_path = [Path(p) for p in mp3_files_strr]
 
@@ -251,13 +261,13 @@ def music_player(page: ft.Page):
         if not mp3_files_strr:
             os.remove('mp3_files.json')
 
-            if config.previous_background:
-                os.remove(config.previous_background)
+            if cfg.previous_background:
+                os.remove(cfg.previous_background)
 
-            background_image.src = config.resource_path('color/Desktop - 1.png')
-            config.previous_background = None
+            background_image.src = cfg.wallpaper
+            cfg.previous_background = None
             profile_song_picture.src_base64 = None
-            profile_song_picture.src = config.resource_path('color/icon_sq.png')
+            profile_song_picture.src = cfg.resource_path('color/icon_sq.png')
             background_image.opacity = 1
 
             song_elements.controls.append(add_path)
@@ -275,8 +285,8 @@ def music_player(page: ft.Page):
 
 
     # добавить треки на страницу если переменная содержащая путь не пустая при первом запуске
-    if config.current_mp3_files:
-        add_song_element_to_page(config.current_mp3_files)
+    if cfg.all_mp3s:
+        add_song_element_to_page(cfg.all_mp3s)
     else:
         song_elements.controls.append(add_path)
         add_audio_button.visible = False
@@ -298,25 +308,25 @@ def music_player(page: ft.Page):
                 song_elements.controls.remove(add_path) # убрать кнопку добавить путь
                 add_audio_button.visible = True
 
-                config.current_mp3_files = files
+                cfg.current_mp3_files = files
 
                 # сохранение в json
                 with open("mp3_files.json", "a", encoding="utf-8") as f:
                     json.dump([str(p) for p in files], f, ensure_ascii=False, indent=2)
 
-                add_song_element_to_page(config.current_mp3_files)
+                add_song_element_to_page(cfg.current_mp3_files)
 
             except Exception as e:
                 if str(e) == 'list.remove(x): x not in list':
-                    new_paths = list(set(files) - set(config.current_mp3_files)) # есть ли новые треки
+                    new_paths = list(set(files) - set(cfg.current_mp3_files)) # есть ли новые треки
 
                     # добавить только если есть новые треки
                     if new_paths:
-                        config.current_mp3_files.extend(Path(file) for file in files if file not in config.current_mp3_files)
+                        cfg.current_mp3_files.extend(Path(file) for file in files if file not in cfg.current_mp3_files)
 
                         # сохранение в json
                         with open("mp3_files.json", "w", encoding="utf-8") as f:
-                            json.dump([str(p) for p in config.current_mp3_files], f, ensure_ascii=False, indent=2)
+                            json.dump([str(p) for p in cfg.current_mp3_files], f, ensure_ascii=False, indent=2)
 
                         add_song_element_to_page(new_paths)
 
@@ -326,7 +336,7 @@ def music_player(page: ft.Page):
 
 
     def see_edit_icon(e):
-        if config.current_playing_audio:
+        if cfg.current_playing_audio:
             profile_song_edit_icon.visible = not profile_song_edit_icon.visible
             if profile_song_picture.opacity != 0.5:
                 profile_song_picture.opacity = 0.5
@@ -336,7 +346,7 @@ def music_player(page: ft.Page):
 
     # перейти на страницу редактирования текущего трека
     def edit_current_song(_):
-        if config.current_playing_audio:
+        if cfg.current_playing_audio:
             # остановить воспроизведение трека перед переходом на новую страницу
             audio1.pause()
             audio1.release()
@@ -347,7 +357,7 @@ def music_player(page: ft.Page):
 
             # Если нет ID3-тэгов — создать
             try:
-                song = ID3(config.current_playing_audio)
+                song = ID3(cfg.current_playing_audio)
             except ID3NoHeaderError:
                 song = ID3()  # создаем теги, если их нет
 
@@ -355,32 +365,32 @@ def music_player(page: ft.Page):
                 # есть ли у трека обложка
                 if isinstance(tag, APIC):
                     # конвертация в base64, чтобы использовать для обложки трека
-                    config.cover_exists = base64.b64encode(tag.data).decode("utf-8")
+                    cfg.cover_exists = base64.b64encode(tag.data).decode("utf-8")
                     ### для проверок ##############################################
                     # with open("cover.jpg", "wb") as f:
                     #    f.write(tag.data)
 
                 # есть ли у трека название
                 if isinstance(tag, TIT2):
-                    config.song_name_exists = tag
+                    cfg.song_name_exists = tag
 
                 # есть ли у трека артист
                 if isinstance(tag, TPE1):
-                    config.artist_name_exists = tag
+                    cfg.artist_name_exists = tag
 
                 # есть ли у трека название альбома
                 if isinstance(tag, TALB):
-                    config.album_name_exists = tag
+                    cfg.album_name_exists = tag
 
             # сохранение пути
-            config.audio_file = str(config.current_playing_audio)
+            cfg.audio_file = str(cfg.current_playing_audio)
 
             # удалить временный файл фона
-            if config.previous_background:
-                os.remove(config.previous_background)
-                config.previous_background = None
+            if cfg.previous_background:
+                os.remove(cfg.previous_background)
+                cfg.previous_background = None
 
-            config.current_playing_audio = None
+            cfg.current_playing_audio = None
 
             page.go('/edit')
             page.update()
@@ -388,7 +398,8 @@ def music_player(page: ft.Page):
     # инфо о треке справа
     profile_song_edit_icon = ft.Container(
         content=ft.Image(
-            src=config.resource_path("icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+            src=cfg.resource_path("icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+            color=cfg.not_main_color_hex,
             width=250,
             height=250,
             border_radius=30,
@@ -397,7 +408,7 @@ def music_player(page: ft.Page):
         visible=False,
     )
     profile_song_picture = ft.Image(
-        src=config.resource_path("color/icon_sq.png"),
+        src=cfg.resource_path("color/icon_sq.png"),
         border_radius=25,
         opacity=1,
     )
@@ -427,12 +438,13 @@ def music_player(page: ft.Page):
     profile_artist_name_text = ft.Text(
         'Artist',
         style=ft.TextStyle(
-            color="#EBD0E1",
+            color=cfg.not_main_color_hex,
             font_family="Gabarito",
             size=45,
             weight=ft.FontWeight.BOLD,
         ),
     )
+    cfg.dynamic_color["color_not_main"].append(profile_artist_name_text)
 
     song_profile = ft.Column(
         controls=[profile_song_picture_container, profile_song_name_text, profile_artist_name_text],
@@ -457,7 +469,7 @@ def music_player(page: ft.Page):
             play(_)
             return
 
-        if config.current_playing_audio:
+        if cfg.current_playing_audio:
             audio1.pause()
             audio1.seek(0)
 
@@ -471,10 +483,6 @@ def music_player(page: ft.Page):
             temp_song_profile = ID3(file)
         except ID3NoHeaderError:
             temp_song_profile = ID3()  # создаем теги, если их нет
-
-        ### для проверок #################################################
-        #with open('temp_song_profile.txt', 'w', encoding='UTF-8') as txt:
-        #    txt.write(f'temp_song_profile: {temp_song_profile}')
 
         # название трека
         profile_song_name_text.value = temp_song_profile.get('TIT2')
@@ -490,22 +498,6 @@ def music_player(page: ft.Page):
         if cover_tag:
             mime = cover_tag.mime  # формат картинки на обложке (png/jpeg)
 
-            ### для проверок ############################################
-            #print(f'mime: {mime}')
-            #print("JPEG header:", cover_tag.data[:10])
-            #print("Size:", len(cover_tag.data))
-
-            #try:
-            #    test_img = Image.open(io.BytesIO(cover_tag.data))
-            #    print("Detected format:", test_img.format)
-            #    print("Size:", test_img.size)
-            #except Exception as ex:
-            #    print("ERROR opening image:", ex)
-
-            #img = Image.open(io.BytesIO(cover_tag.data))
-            #print("Mode:", img.mode)
-            #print("Info:", img.info)
-
             # определяем подходящий формат для Pillow для размытия на фон
             if mime == "image/jpeg":
                 fmt = "JPEG"
@@ -520,25 +512,31 @@ def music_player(page: ft.Page):
 
             # установить обложку трека в качестве фона
             blurred_cover = blur_image_bytes(cover_tag.data, format=fmt, radius=5)
-            with open(config.resource_path(f"color/temporal_blurred_{file.stem}.png"), "wb") as f:
+            with open(cfg.resource_path(f"color/temporal_blurred_{file.stem}.png"), "wb") as f:
                 f.write(blurred_cover)
 
-            background_image.src = config.resource_path(f"color/temporal_blurred_{file.stem}.png")
-            if config.previous_background:
-                os.remove(config.previous_background)
-            config.previous_background = background_image.src
+            background_image.src = cfg.resource_path(f"color/temporal_blurred_{file.stem}.png")
+            if cfg.previous_background:
+                if os.path.exists(cfg.previous_background):
+                    os.remove(cfg.previous_background)
+            cfg.previous_background = background_image.src
 
             background_image.opacity = 0.5
 
-        else:
-            if config.previous_background:
-                os.remove(config.previous_background)
+            average_color_from_apic(cover_tag)
 
-            background_image.src = config.resource_path('color/Desktop - 1.png')
-            config.previous_background = None
+        else:
+            if cfg.previous_background:
+                if os.path.exists(cfg.previous_background):
+                    os.remove(cfg.previous_background)
+
+            background_image.src = cfg.wallpaper
+            cfg.previous_background = None
             profile_song_picture.src_base64 = None
-            profile_song_picture.src = config.resource_path('color/icon_sq.png')
+            profile_song_picture.src = cfg.resource_path('color/icon_sq.png')
             background_image.opacity = 1
+
+            average_color_from_apic(None)
 
         # добавление названия файла в название трека если в метаданных ничего нет
         if not profile_song_name_text.value:
@@ -546,8 +544,7 @@ def music_player(page: ft.Page):
 
             profile_artist_name_text.value = ''
 
-        config.current_playing_audio = file
-        #page.update()
+        cfg.current_playing_audio = file
 
     # воспроизведение трека после загрузки
     def audio_loaded(_):
@@ -564,7 +561,7 @@ def music_player(page: ft.Page):
     def play(_):
         if audio1 in page.overlay:
             # если трек уже играет, то поставить на паузу
-            if play_pouse_icon.src == config.resource_path("icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"):
+            if play_pouse_icon.src == cfg.resource_path("icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"):
                 audio1.pause()
             else:
                 audio1.resume()
@@ -586,9 +583,11 @@ def music_player(page: ft.Page):
     audio_slider = ft.Slider(
         min=0,
         on_change=slider_changed,
-        active_color="#FE3C79",
-        inactive_color="#EBD0E1",
+        active_color=cfg.main_color_hex,
+        inactive_color=cfg.not_main_color_hex,
     )
+    cfg.dynamic_color["active_color"].append(audio_slider)
+    cfg.dynamic_color["inactive_color"].append(audio_slider)
 
     # громкость
     def volume_slider_changed(_):
@@ -596,11 +595,11 @@ def music_player(page: ft.Page):
             audio1.volume = volume_slider.value
 
             if audio1.volume > 0.5:
-                volume_icon.src = config.resource_path('icons/volume_up_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg')
+                volume_icon.src = cfg.resource_path('icons/volume_up_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg')
             elif audio1.volume < 0.5:
-                volume_icon.src = config.resource_path('icons/volume_down_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg')
+                volume_icon.src = cfg.resource_path('icons/volume_down_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg')
             elif audio1.volume == 0:
-                volume_icon.src = config.resource_path('icons/volume_off_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg')
+                volume_icon.src = cfg.resource_path('icons/volume_off_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg')
 
             page.update()
 
@@ -609,32 +608,36 @@ def music_player(page: ft.Page):
         max=1,
         value=1,
         on_change=volume_slider_changed,
-        active_color="#FE3C79",
-        inactive_color="#EBD0E1",
+        active_color=cfg.main_color_hex,
+        inactive_color=cfg.not_main_color_hex,
     )
+    cfg.dynamic_color["active_color"].append(volume_slider)
+    cfg.dynamic_color["inactive_color"].append(volume_slider)
 
     def volume_muter(_):
         if audio1 in page.overlay:
             # если громкость выше 0 то сделать мут и сохранить прошлую громкость
             if audio1.volume > 0:
-                config.current_volume = audio1.volume
+                cfg.current_volume = audio1.volume
                 audio1.volume = 0
                 volume_slider.value = 0
-                volume_icon.src = config.resource_path('icons/volume_off_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg')
+                volume_icon.src = cfg.resource_path('icons/volume_off_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg')
 
             # вернуть громкость если трек в муте
             elif audio1.volume == 0:
-                audio1.volume = config.current_volume
-                volume_slider.value = config.current_volume
+                audio1.volume = cfg.current_volume
+                volume_slider.value = cfg.current_volume
                 volume_slider_changed(_)
 
             page.update()
 
     volume_icon = ft.Image(
-        src=config.resource_path('icons/volume_up_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg'),
+        src=cfg.resource_path('icons/volume_up_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg'),
+        color=cfg.not_main_color_hex,
         width=45,
         height=45,
     )
+    cfg.dynamic_color["color_not_main"].append(volume_icon)
 
     # поменять иконку воспроизведения
     def state_handler(_):
@@ -643,15 +646,15 @@ def music_player(page: ft.Page):
         # _.data -> completed
 
         if _.data == 'playing':
-            play_pouse_icon.src = config.resource_path("icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
+            play_pouse_icon.src = cfg.resource_path("icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
 
         elif _.data == 'paused':
-            play_pouse_icon.src = config.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
+            play_pouse_icon.src = cfg.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
 
         elif _.data == 'completed':
-            if config.play_mode == 'default':
+            if cfg.play_mode == 'default':
                 audio1.seek(0)
-                play_pouse_icon.src = config.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
+                play_pouse_icon.src = cfg.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
             else:
                 next_track(_)
 
@@ -664,7 +667,8 @@ def music_player(page: ft.Page):
     )
 
     play_pouse_icon = ft.Image(
-        src=config.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+        src=cfg.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+        color=cfg.not_main_color_hex,
         width=45,
         height=45,
     )
@@ -675,9 +679,10 @@ def music_player(page: ft.Page):
         bgcolor=ft.Colors.TRANSPARENT,
         on_click=play,  # обработчик нажатия
     )
+    cfg.dynamic_color["color_not_main"].append(play_pouse_icon)
 
     def previous_track(_):
-        if config.current_playing_audio:
+        if cfg.current_playing_audio:
             # перемотать трек на самое начало если он играет больше трех секунд
             if audio1.get_current_position() > 3000:
                 audio1.seek(0)
@@ -685,44 +690,47 @@ def music_player(page: ft.Page):
                 page.update()
                 return
 
-            if len(config.current_mp3_files) > 1:
-                # индекс текущего трека в списке треков
-                mp3_files_index = config.current_mp3_files.index(config.current_playing_audio)
+            if cfg.play_mode == 'default':
+                if len(cfg.current_mp3_files) > 1:
+                    # индекс текущего трека в списке треков
+                    mp3_files_index = cfg.current_mp3_files.index(cfg.current_playing_audio)
 
-                # если текущий трек самый первый в списке
-                if mp3_files_index == 0:
-                    # переключить на самый последний трек
-                    previous_song = config.current_mp3_files[len(config.current_mp3_files) - 1]
-                else:
-                    # переключить на предыдущий
-                    previous_song = config.current_mp3_files[mp3_files_index - 1]
+                    # если текущий трек самый первый в списке
+                    if mp3_files_index == 0:
+                        # переключить на самый последний трек
+                        previous_song = cfg.current_mp3_files[len(cfg.current_mp3_files) - 1]
+                    else:
+                        # переключить на предыдущий
+                        previous_song = cfg.current_mp3_files[mp3_files_index - 1]
 
-                choose_audio_to_play(_, previous_song)
+                    choose_audio_to_play(_, previous_song)
+            else:
+                current_play_mode_handl(_)
 
     def next_track(_):
-        if config.current_playing_audio:
-            if config.play_mode == 'default':
-                if len(config.current_mp3_files) > 1:
+        if cfg.current_playing_audio:
+            if cfg.play_mode == 'default':
+                if len(cfg.current_mp3_files) > 1:
                     # индекс текущего трека в списке треков
-                    mp3_files_index = config.current_mp3_files.index(config.current_playing_audio)
+                    mp3_files_index = cfg.current_mp3_files.index(cfg.current_playing_audio)
 
                     # если текущий трек самый последний
-                    if mp3_files_index == len(config.current_mp3_files) - 1:
+                    if mp3_files_index == len(cfg.current_mp3_files) - 1:
                         # переключить на самый первый в списке
-                        previous_song = config.current_mp3_files[0]
+                        previous_song = cfg.current_mp3_files[0]
                     else:
                         # переключить на следующий
-                        previous_song = config.current_mp3_files[config.current_mp3_files.index(config.current_playing_audio) + 1]
+                        previous_song = cfg.current_mp3_files[cfg.current_mp3_files.index(cfg.current_playing_audio) + 1]
                     choose_audio_to_play(_, previous_song)
             else:
                 current_play_mode_handl(_)
 
     # кнопка назад
     previous_icon = ft.Image(
-        src=config.resource_path("icons/arrow_back_ios.svg"),
+        src=cfg.resource_path("icons/arrow_back_ios.svg"),
         width=25,
         height=25,
-        color="#FE3C79",
+        color=cfg.main_color_hex,
     )
     previous_button = ft.Button(
         content=previous_icon,
@@ -731,13 +739,14 @@ def music_player(page: ft.Page):
         bgcolor=ft.Colors.TRANSPARENT,
         on_click=lambda e: previous_track(e),
     )
+    cfg.dynamic_color["color_main"].append(previous_icon)
 
     # кнопка вперед
     next_icon = ft.Image(
-        src=config.resource_path("icons/arrow_forward_ios.svg"),
+        src=cfg.resource_path("icons/arrow_forward_ios.svg"),
         width=25,
         height=25,
-        color="#FE3C79",
+        color=cfg.main_color_hex,
     )
     next_button = ft.Button(
         content=next_icon,
@@ -746,18 +755,19 @@ def music_player(page: ft.Page):
         bgcolor=ft.Colors.TRANSPARENT,
         on_click=lambda e: next_track(e),
     )
+    cfg.dynamic_color["color_main"].append(next_icon)
 
     def current_play_mode_handl(_):
         random.seed(time.time())
 
-        if config.play_mode == 'repeat':
+        if cfg.play_mode == 'repeat':
             audio1.seek(0)
             audio1.play()
 
-        elif config.play_mode == 'shuffle':
+        elif cfg.play_mode == 'shuffle':
             # временный список треков без текущего, чтобы выбрать следующий трек
-            temp_list = config.current_mp3_files.copy()
-            temp_list.remove(config.current_playing_audio)
+            temp_list = cfg.current_mp3_files.copy()
+            temp_list.remove(cfg.current_playing_audio)
 
             new_song_to_play = random.choice(temp_list)
 
@@ -767,32 +777,32 @@ def music_player(page: ft.Page):
 
     def current_play_mode_icon_handl(_, mode):
         if mode == 'repeat':
-            if repeat_icon.color == "#EBD0E1":
-                config.play_mode = 'repeat'
-                repeat_icon.color = "#FE3C79" # сделать иконку повтора активной
+            if repeat_icon.color == cfg.not_main_color_hex:
+                cfg.play_mode = 'repeat'
+                repeat_icon.color = cfg.main_color_hex # сделать иконку повтора активной
             else:
-                config.play_mode = 'default'
-                repeat_icon.color = "#EBD0E1"
+                cfg.play_mode = 'default'
+                repeat_icon.color = cfg.not_main_color_hex
 
-            shuffle_icon.color = "#EBD0E1"  # сделать иконку перемешивания неактивной
+            shuffle_icon.color = cfg.not_main_color_hex  # сделать иконку перемешивания неактивной
 
         elif mode == 'shuffle':
-            if shuffle_icon.color == "#EBD0E1":
-                config.play_mode = 'shuffle'
-                shuffle_icon.color = "#FE3C79" # сделать иконку повтора активной
+            if shuffle_icon.color == cfg.not_main_color_hex:
+                cfg.play_mode = 'shuffle'
+                shuffle_icon.color = cfg.main_color_hex # сделать иконку повтора активной
             else:
-                config.play_mode = 'default'
-                shuffle_icon.color = "#EBD0E1"
+                cfg.play_mode = 'default'
+                shuffle_icon.color = cfg.not_main_color_hex
 
-            repeat_icon.color = "#EBD0E1"  # сделать иконку повтора неактивной
+            repeat_icon.color = cfg.not_main_color_hex  # сделать иконку повтора неактивной
 
         page.update()
 
     repeat_icon = ft.Image(
-        src=config.resource_path("icons/repeat.svg"),
+        src=cfg.resource_path("icons/repeat.svg"),
         width=45,
         height=45,
-        color='#EBD0E1'
+        color=cfg.not_main_color_hex,
     )
     # кнопка повтор трека
     repeat_button = ft.Container(
@@ -804,10 +814,10 @@ def music_player(page: ft.Page):
     )
 
     shuffle_icon = ft.Image(
-        src=config.resource_path("icons/shuffle.svg"),
+        src=cfg.resource_path("icons/shuffle.svg"),
         width=45,
         height=45,
-        color='#EBD0E1'
+        color=cfg.not_main_color_hex,
     )
     # кнопка повтор трека
     shuffle_button = ft.Container(
@@ -825,24 +835,21 @@ def music_player(page: ft.Page):
         s = s % 60
         return f"{m}:{s:02}"
 
+    song_duration_text_style = ft.TextStyle(
+        color=cfg.not_main_color_hex,
+        font_family="Gabarito",
+        size=25,
+        weight=ft.FontWeight.BOLD,
+    )
     song_duration_text = ft.Text(
         '0:00',
-        style=ft.TextStyle(
-            color="#EBD0E1",
-            font_family="Gabarito",
-            size=25,
-            weight=ft.FontWeight.BOLD,
-        ),
+        style=song_duration_text_style,
     )
     song_current_position_text = ft.Text(
         '0:00',
-        style=ft.TextStyle(
-            color="#EBD0E1",
-            font_family="Gabarito",
-            size=25,
-            weight=ft.FontWeight.BOLD,
-        ),
+        style=song_duration_text_style,
     )
+    cfg.dynamic_color["color_not_main"].append(song_duration_text_style)
 
     audio_controls = ft.Container(
         content=ft.Column(
@@ -901,22 +908,22 @@ def music_player(page: ft.Page):
                 # есть ли у трека обложка
                 if isinstance(edit_song_tag, APIC):
                     # конвертация в base64, чтобы использовать для обложки трека
-                    config.cover_exists = base64.b64encode(edit_song_tag.data).decode("utf-8")
+                    cfg.cover_exists = base64.b64encode(edit_song_tag.data).decode("utf-8")
 
                 # есть ли у трека название
                 if isinstance(edit_song_tag, TIT2):
-                    config.song_name_exists = edit_song_tag
+                    cfg.song_name_exists = edit_song_tag
 
                 # есть ли у трека артист
                 if isinstance(edit_song_tag, TPE1):
-                    config.artist_name_exists = edit_song_tag
+                    cfg.artist_name_exists = edit_song_tag
 
                 # есть ли у трека название альбома
                 if isinstance(edit_song_tag, TALB):
-                    config.album_name_exists = edit_song_tag
+                    cfg.album_name_exists = edit_song_tag
 
             # сохранение пути
-            config.audio_file = e.files[0].path
+            cfg.audio_file = e.files[0].path
 
             # остановить воспроизведение трека перед переходом на новую страницу
             if audio1 in page.overlay:
@@ -925,11 +932,15 @@ def music_player(page: ft.Page):
                 page.overlay.clear()
 
             # удалить временный файл фона
-            if config.previous_background:
-                os.remove(config.previous_background)
-                config.previous_background = None
+            if cfg.previous_background:
+                os.remove(cfg.previous_background)
+                cfg.previous_background = None
 
-            config.current_playing_audio = None
+            cfg.current_playing_audio = None
+
+            # вернуть дефолтные цвета перед преходом на новую страницу
+            cfg.main_color_hex = cfg.user_settings.get("main_color_hex", "#FE3C79")
+            cfg.not_main_color_hex = cfg.user_settings.get("not_main_color_hex", "#EBD0E1")
 
             page.go('/edit')
             page.update()
@@ -938,12 +949,14 @@ def music_player(page: ft.Page):
     page.overlay.append(file_picker)
 
     # кнопка выбора аудиофайла / переход на страницу редактирования
+    find_audio_icon = ft.Image(
+        src=cfg.resource_path("icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+        color=cfg.not_main_color_hex,
+        width=55,
+        height=55,
+    )
     find_audio = ft.Container(
-        content=ft.Image(
-            src=config.resource_path("icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
-            width=55,
-            height=55,
-        ),
+        content=find_audio_icon,
         width=55,
         height=55,
         border_radius=15,
@@ -951,13 +964,18 @@ def music_player(page: ft.Page):
         ink=True,
         on_click=lambda e: pick_file(e),
     )
+    cfg.dynamic_color["color_not_main"].append(find_audio_icon)
 
 
 
     def back_to_download_page(_):
         # очистить переменные перед переходом на новую страницу
-        config.current_volume = None
-        config.current_playing_audio = None
+        cfg.current_volume = None
+        cfg.current_playing_audio = None
+
+        # вернуть дефолтные цвета перед преходом на новую страницу
+        cfg.main_color_hex = cfg.user_settings.get("main_color_hex", "#FE3C79")
+        cfg.not_main_color_hex = cfg.user_settings.get("not_main_color_hex", "#EBD0E1")
 
         # остановить воспроизведение трека перед переходом на новую страницу
         if audio1 in page.overlay:
@@ -966,20 +984,21 @@ def music_player(page: ft.Page):
             page.overlay.clear()
 
         # удалить временный файл фона
-        if config.previous_background:
-            os.remove(config.previous_background)
-            config.previous_background = None
+        if cfg.previous_background:
+            os.remove(cfg.previous_background)
+            cfg.previous_background = None
 
         page.go("/")
 
     # кнопка "вернуться к странице скачивания"
+    to_download_page_button_icon = ft.Image(
+        src=cfg.resource_path("icons/home_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+        width=55,
+        height=55,
+        color=cfg.not_main_color_hex,
+    )
     to_download_page_button = ft.Container(
-        content=ft.Image(
-            src=config.resource_path("icons/home_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
-            width=55,
-            height=55,
-            color='#EBD0E1'
-        ),
+        content=to_download_page_button_icon,
         width=55,
         height=55,
         border_radius=15,
@@ -987,23 +1006,25 @@ def music_player(page: ft.Page):
         ink=True,
         on_click=lambda e: back_to_download_page(e),
     )
+    cfg.dynamic_color["color_not_main"].append(to_download_page_button_icon)
 
 
 
     def search_text_input_changed(_):
-        # если поле пустое вернуть все треки
-        if not search_text_input.value:
-            song_elements.controls.clear()
-            page.update()
-            config.current_mp3_files = config.all_mp3s.copy()
-            add_song_element_to_page(config.all_mp3s)
-            return
+        if cfg.current_mp3_files:
+            # если поле пустое вернуть все треки
+            if not search_text_input.value:
+                song_elements.controls.clear()
+                page.update()
+                cfg.current_mp3_files = cfg.all_mp3s.copy()
+                add_song_element_to_page(cfg.all_mp3s)
+                return
 
     def search_text_input_submit(_):
         temporal_found_songs = []  # список найденных треков
 
-        if config.current_mp3_files:
-            for audio_file_path in config.all_mp3s:
+        if cfg.current_mp3_files:
+            for audio_file_path in cfg.all_mp3s:
                 try:
                     temp_song_profile = ID3(audio_file_path)
                 except ID3NoHeaderError:
@@ -1030,25 +1051,34 @@ def music_player(page: ft.Page):
                 # если совпадения есть
                 if temporal_found_songs:
                     song_elements.controls.clear()
-                    config.current_mp3_files = temporal_found_songs
+                    cfg.current_mp3_files = temporal_found_songs
                     add_song_element_to_page(temporal_found_songs)
                     page.update()
                 else:
                     song_elements.controls.clear()
                     page.update()
 
+    def search_text_input_on_focus(_):
+        cfg.focus_on_search_text_input = True
+
+    def search_text_input_on_blur(_):
+        cfg.focus_on_search_text_input = False
+
     # поиск трека по названию
+    search_text_input_color = ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=cfg.not_main_color_hex)
     search_text_input = ft.TextField(
         hint_text="Search song",
-        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color="#40FE3C79"),
-        text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color="#FE3C79"),
+        hint_style=search_text_input_color,
+        text_style=search_text_input_color,
         text_size=25,
         border_color="transparent",
         border_radius=15,
-        bgcolor="#EBD0E1",
         on_submit=search_text_input_submit,
         on_change=search_text_input_changed,
+        on_focus=search_text_input_on_focus,
+        on_blur=search_text_input_on_blur,
     )
+    cfg.dynamic_color["color_not_main"].append(search_text_input_color)
 
 
 
@@ -1097,10 +1127,113 @@ def music_player(page: ft.Page):
         image.save(output, format=format)
         return output.getvalue()
 
+    # получить средний цвет изображения, чтобы применить в качестве темы
+    def average_color_from_apic(apic_tag):
+        # если передано None, то применяется стандартная тема
+        if apic_tag:
+            img = Image.open(BytesIO(apic_tag.data)).convert("RGB")
+            arr = np.asarray(img)
+            avg = arr.mean(axis=(0, 1))
+
+            result = tuple(avg.astype(int))
+            r, g, b = result
+
+            # некоторые обложки дают слишком темный цвет. исправляем
+            brightness = 0.2126*r + 0.7152*g + 0.0722*b
+            if brightness < 120: # минимальный порог яркости 120
+                factor = 120 / max(brightness, 1)
+                r = min(int(r * factor), 255)
+                g = min(int(g * factor), 255)
+                b = min(int(b * factor), 255)
+
+            # итоговый цвет в hex
+            hex_color = f"#{r:02x}{g:02x}{b:02x}"
+
+            # понижение насыщенности основного цвета для применения в качестве неосновного цвета
+            desaturated_color = desaturate_hex(hex_color)
+
+            # эти параметры нужно менять в конфиге, чтобы цвета shuffle_icon и repeat_icon отображались правильно
+            cfg.main_color_hex = hex_color
+            cfg.not_main_color_hex = desaturated_color
+
+        else:
+            cfg.main_color_hex = cfg.user_settings.get("main_color_hex", "#FE3C79")
+            cfg.not_main_color_hex = cfg.user_settings.get("not_main_color_hex", "#EBD0E1")
+
+            hex_color = cfg.user_settings.get("main_color_hex", "#FE3C79")
+            desaturated_color = cfg.user_settings.get("not_main_color_hex", "#EBD0E1")
+
+        for dynamic_element in cfg.dynamic_color["active_color"]:
+            dynamic_element.active_color = hex_color
+
+        for dynamic_element in cfg.dynamic_color["inactive_color"]:
+            dynamic_element.inactive_color = desaturated_color
+
+        for dynamic_element in cfg.dynamic_color["color_main"]:
+            dynamic_element.color = hex_color
+
+        for dynamic_element in cfg.dynamic_color["color_not_main"]:
+            dynamic_element.color = desaturated_color
+
+        if cfg.play_mode == "shuffle":
+            shuffle_icon.color = hex_color
+            repeat_icon.color = desaturated_color
+        elif cfg.play_mode == "repeat":
+            repeat_icon.color = hex_color
+            shuffle_icon.color = desaturated_color
+        else:
+            shuffle_icon.color = desaturated_color
+            repeat_icon.color = desaturated_color
+
+        page.update()
+
+    # уменьшить насыщенность цвета для неосновного цвета
+    def desaturate_hex(hex_color: str, factor: float = 0.5) -> str:
+        """
+        factor — во сколько раз уменьшить насыщенность (0.0–1.0)
+        1.0 = без изменений
+        0.5 = в 2 раза менее насыщенный
+        0.0 = полностью серый
+        """
+        hex_color = hex_color.lstrip("#")
+
+        r = int(hex_color[0:2], 16) / 255
+        g = int(hex_color[2:4], 16) / 255
+        b = int(hex_color[4:6], 16) / 255
+
+        h, s, v = colorsys.rgb_to_hsv(r, g, b)
+
+        s *= factor
+        s = max(0, min(1, s))
+
+        r2, g2, b2 = colorsys.hsv_to_rgb(h, s, v)
+
+        return "#{:02x}{:02x}{:02x}".format(
+            int(r2 * 255),
+            int(g2 * 255),
+            int(b2 * 255),
+            int
+        )
+
+
+
+    # управление на клавиатуре
+    def keyboard_ctrl(e: ft.KeyboardEvent):
+        # полноэкранный режим
+        if e.key == " ":
+            if not cfg.focus_on_search_text_input:
+                play(e)
+                page.update()
+        elif e.key == "F11":
+            page.window.full_screen = not page.window.full_screen
+            page.update()
+
+    page.on_keyboard_event = keyboard_ctrl
+
 
 
     background_image = ft.DecorationImage(
-        src=config.resource_path("color/Desktop - 1.png"),
+        src=cfg.wallpaper,
         fit=ft.ImageFit.COVER,
     )
     background = ft.BoxDecoration(
