@@ -47,7 +47,6 @@ rumi-desktop/
 │
 ├── icons/               # SVG icons
 ├── color/               # Wallpapers, temporary backgrounds
-├── dynamic_color/       # Debug dumps of dynamic UI elements
 │
 ├── user_setting.json    # User preferences (generated)
 ├── mp3_files.json       # Saved MP3 paths (generated)
