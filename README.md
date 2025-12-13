@@ -22,14 +22,27 @@ This README explains **how the project works internally**, how files interact, a
 
 ---
 
-## Requirements
+## Origin
 
-- [FFmpeg](https://ffmpeg.org/download.html) must be installed.
-- After downloading, **add the `ffmpeg\bin` folder to your system `PATH`.**
+The name **rumi-desktop** comes from the Telegram bot **[@rumi_wave_bot](https://t.me/rumi_wave_bot)**, also developed by me, which has all the same functionality as this desktop application.  
+The Telegram bot also features **GPT integration** for interactive AI capabilities.
+
+---
+
+## Requirements
 
 ```bash
 pip install -r requirements.txt
 ```
+
+- [FFmpeg](https://ffmpeg.org/download.html) must be installed.
+- After downloading, **add the `ffmpeg\bin` folder to your system `PATH`.**
+
+Some videos may require **cookies** to download via `yt-dlp`.  
+To use cookies:  
+
+1. Export cookies from any browser using any cookie-exporting extension.  
+2. Save the file as `cookies.txt` in the `rumi-desktop/cooks/` folder.
 
 ---
 
