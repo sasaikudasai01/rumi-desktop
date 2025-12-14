@@ -393,7 +393,13 @@ def music_player(page: ft.Page):
                 os.remove(cfg.previous_background)
                 cfg.previous_background = None
 
+            # очистить переменные перед переходом на новую страницу
+            cfg.current_volume = None
             cfg.current_playing_audio = None
+
+            # вернуть дефолтные цвета перед преходом на новую страницу
+            cfg.main_color_hex = cfg.user_settings.get("main_color_hex", "#FE3C79")
+            cfg.not_main_color_hex = cfg.user_settings.get("not_main_color_hex", "#EBD0E1")
 
             page.go('/edit')
             page.update()
@@ -942,6 +948,8 @@ def music_player(page: ft.Page):
                 os.remove(cfg.previous_background)
                 cfg.previous_background = None
 
+            # очистить переменные перед переходом на новую страницу
+            cfg.current_volume = None
             cfg.current_playing_audio = None
 
             # вернуть дефолтные цвета перед преходом на новую страницу

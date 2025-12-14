@@ -1,7 +1,7 @@
 import flet as ft
 import flet_audio as fa
 import time
-import config
+import config as cfg
 from mutagen.id3 import ID3, APIC, TIT2, TPE1, ID3NoHeaderError, TALB # изменение метаданных трека
 
 def edit_data(page: ft.Page):
@@ -12,7 +12,7 @@ def edit_data(page: ft.Page):
     # замена обложки
     def on_file_picked(e: ft.FilePickerResultEvent):
         if e.files:
-            if config.cover_exists:
+            if cfg.cover_exists:
                 # очистить src_base64 если у трека изначально есть обложка
                 cover_image.src_base64 = None
 
@@ -27,7 +27,7 @@ def edit_data(page: ft.Page):
 
 
     def see_change_icon(e):
-        if cover_image.src != config.resource_path("color/icon_sq.png"):
+        if cover_image.src != cfg.resource_path("color/icon_sq.png"):
             edit_cover_icon.visible = not edit_cover_icon.visible
             if cover_image.opacity != 0.5:
                 cover_image.opacity = 0.5
@@ -36,7 +36,7 @@ def edit_data(page: ft.Page):
             page.update()
 
     cover_image = ft.Image(
-        src=config.resource_path("color/icon_sq.png"),
+        src=cfg.resource_path("color/icon_sq.png"),
         width=420,
         height=420,
         border_radius=30,
@@ -46,7 +46,7 @@ def edit_data(page: ft.Page):
     # pops up when hovered on cover
     edit_cover_icon = ft.Container(
         content=ft.Image(
-            src=config.resource_path("icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+            src=cfg.resource_path("icons/edit_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
             width=250,
             height=250,
             border_radius=30,
@@ -56,8 +56,8 @@ def edit_data(page: ft.Page):
     )
 
     # если у трека есть обложка, то показать ее в cover_image
-    if config.cover_exists:
-        cover_image.src_base64=config.cover_exists
+    if cfg.cover_exists:
+        cover_image.src_base64=cfg.cover_exists
         cover_image.src=None
         cover_image.opacity=1
 
@@ -80,7 +80,7 @@ def edit_data(page: ft.Page):
     # song name
     song_name_input = ft.TextField(
         hint_text="Song name",
-        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=config.not_main_color_hex),
+        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=cfg.not_main_color_hex),
         text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color="#FFFFFF"),
         text_size=128,
         border_color="transparent",
@@ -89,15 +89,15 @@ def edit_data(page: ft.Page):
         width=1340,
     )
 
-    if config.song_name_exists:
-        song_name_input.hint_text = config.song_name_exists
+    if cfg.song_name_exists:
+        song_name_input.hint_text = cfg.song_name_exists
         page.update()
 
     # artist name
     artist_name_input = ft.TextField(
         hint_text="Artist",
-        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=config.not_main_color_hex),
-        text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=config.not_main_color_hex),
+        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=cfg.not_main_color_hex),
+        text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=cfg.not_main_color_hex),
         text_size=64,
         border_color="transparent",
         border_radius=30,
@@ -105,15 +105,15 @@ def edit_data(page: ft.Page):
         width=670,
     )
 
-    if config.artist_name_exists:
-        artist_name_input.hint_text = config.artist_name_exists
+    if cfg.artist_name_exists:
+        artist_name_input.hint_text = cfg.artist_name_exists
         page.update()
 
     # album name
     album_name_input = ft.TextField(
         hint_text="Album",
-        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=config.not_main_color_hex),
-        text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=config.not_main_color_hex),
+        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=cfg.not_main_color_hex),
+        text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=cfg.not_main_color_hex),
         text_size=64,
         border_color="transparent",
         border_radius=30,
@@ -121,15 +121,15 @@ def edit_data(page: ft.Page):
         width=670,
     )
 
-    if config.album_name_exists:
-        album_name_input.hint_text = config.album_name_exists
+    if cfg.album_name_exists:
+        album_name_input.hint_text = cfg.album_name_exists
         page.update()
 
     # редактировать название аудио в метаданных
     def edit_name_handl(e):
         try:
             # это все нужно чтобы мутаген без проблем изменил метаданные
-            play_pouse_icon.src = config.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
+            play_pouse_icon.src = cfg.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
             audio1.pause()
             audio1.seek(0)
             audio1.release()
@@ -143,7 +143,7 @@ def edit_data(page: ft.Page):
 
             # Если нет ID3-тэгов — создать
             try:
-                audio = ID3(config.audio_file)
+                audio = ID3(cfg.audio_file)
             except ID3NoHeaderError:
                 audio = ID3()  # создаем теги, если их нет
 
@@ -172,7 +172,7 @@ def edit_data(page: ft.Page):
                             )
                         )
 
-            audio.save(config.audio_file, v2_version=3)
+            audio.save(cfg.audio_file, v2_version=3)
 
             apply_status_text.value = 'Done'
             page.update()
@@ -183,7 +183,7 @@ def edit_data(page: ft.Page):
         except Exception as e:
             print(e)
 
-            config.errors_log(e, "Edit page")
+            cfg.errors_log(e, "Edit page")
 
             apply_status_text.value = 'Error'
             page.update()
@@ -197,7 +197,7 @@ def edit_data(page: ft.Page):
             # visible button
             ft.FilledButton(
                 ' ',
-                bgcolor=config.main_color_hex,
+                bgcolor=cfg.main_color_hex,
                 style=ft.ButtonStyle(
                     shape=ft.ContinuousRectangleBorder(radius=60),
                 ),
@@ -210,7 +210,7 @@ def edit_data(page: ft.Page):
                 content=ft.Text(
                     "Apply",
                     style=ft.TextStyle(
-                        color=config.not_main_color_hex,
+                        color=cfg.not_main_color_hex,
                         font_family="Gabarito",
                         size=30,
                         weight=ft.FontWeight.BOLD
@@ -235,12 +235,12 @@ def edit_data(page: ft.Page):
         ],
     )
 
-    def cancel_editing(e):
-        config.cover_exists = None
-        config.visible_edit_icon = True
-        config.song_name_exists = None
-        config.artist_name_exists = None
-        config.album_name_exists = None
+    def cancel_editing(_, to_page):
+        cfg.cover_exists = None
+        cfg.visible_edit_icon = True
+        cfg.song_name_exists = None
+        cfg.artist_name_exists = None
+        cfg.album_name_exists = None
 
         if any(isinstance(ctrl, fa.Audio) for ctrl in page.overlay):
             audio1.release()
@@ -248,7 +248,7 @@ def edit_data(page: ft.Page):
             page.update()
             time.sleep(0.5) # дать Flet время инициализировать компонент
 
-        page.go("/")
+        page.go(to_page)
 
 
 
@@ -265,16 +265,16 @@ def edit_data(page: ft.Page):
         # если трек не играет, то включить
         if audio1.get_current_position() == 0:
             audio1.play()
-            play_pouse_icon.src = config.resource_path("icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
+            play_pouse_icon.src = cfg.resource_path("icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
             page.update()
             return
 
         # если трек уже играет, то поставить на паузу
-        if play_pouse_icon.src == config.resource_path("icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"):
-            play_pouse_icon.src = config.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
+        if play_pouse_icon.src == cfg.resource_path("icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"):
+            play_pouse_icon.src = cfg.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
             audio1.pause()
         else:
-            play_pouse_icon.src = config.resource_path("icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
+            play_pouse_icon.src = cfg.resource_path("icons/pause_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
             audio1.resume()
         page.update()
 
@@ -290,12 +290,12 @@ def edit_data(page: ft.Page):
     audio_slider = ft.Slider(
         min=0,
         on_change=slider_changed,
-        active_color=config.main_color_hex,
-        inactive_color=config.not_main_color_hex,
+        active_color=cfg.main_color_hex,
+        inactive_color=cfg.not_main_color_hex,
     )
 
     audio1 = fa.Audio(
-        src=config.audio_file,
+        src=cfg.audio_file,
         on_loaded=lambda _: audio_loaded(_),
         on_position_changed=lambda e: audio_position_changed(e),
     )
@@ -303,8 +303,8 @@ def edit_data(page: ft.Page):
     page.overlay.append(audio1)
 
     play_pouse_icon = ft.Image(
-        src=config.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
-        color=config.not_main_color_hex,
+        src=cfg.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+        color=cfg.not_main_color_hex,
         width=60,
         height=60
     )
@@ -335,7 +335,7 @@ def edit_data(page: ft.Page):
     apply_status_text = ft.Text(
         ' ',
         style=ft.TextStyle(
-            color=config.not_main_color_hex,
+            color=cfg.not_main_color_hex,
             font_family="Gabarito",
             size=80,
             weight=ft.FontWeight.BOLD
@@ -352,23 +352,42 @@ def edit_data(page: ft.Page):
     # кнопка "вернуться к странице скачивания"
     to_download_page_button = ft.Container(
         content=ft.Image(
-            src=config.resource_path("icons/home_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+            src=cfg.resource_path("icons/home_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
             width=55,
             height=55,
-            color=config.not_main_color_hex
+            color=cfg.not_main_color_hex
         ),
         width=55,
         height=55,
         border_radius=15,
         alignment=ft.alignment.center,
         ink=True,
-        on_click=lambda e: cancel_editing(e),
+        on_click=lambda _, to_page="/": cancel_editing(_, to_page),
+    )
+
+
+
+    music_library_button = ft.Container(
+        content=ft.Image(
+            src=cfg.resource_path("icons/library_music_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg"),
+            color=cfg.not_main_color_hex,
+            width=55,
+            height=55,
+        ),
+        width=55,
+        height=55,
+        border_radius=15,
+        alignment=ft.alignment.center,
+        ink=True,
+        on_click=lambda _, to_page="/music_player": cancel_editing(_, to_page),
     )
 
     edit_page_ui = ft.Stack(
         controls=[
             apply_status,
-            to_download_page_button,
+            ft.Row(
+                controls=[to_download_page_button, music_library_button]
+            ),
             ft.Column(
                 controls=[
                     ft.Row(
@@ -406,7 +425,7 @@ def edit_data(page: ft.Page):
 
     background = ft.BoxDecoration(
         image=ft.DecorationImage(
-            src=config.wallpaper,
+            src=cfg.wallpaper,
             fit=ft.ImageFit.COVER
         )
     )
