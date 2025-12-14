@@ -223,8 +223,7 @@ def startview(page: ft.Page):
             print(f'Error: {e}')
 
             # сохранение ошибки
-            with open('errors.log', 'a', encoding='utf-8') as log:
-                log.write(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} (YouTube downloading) {str(e)}\n')
+            cfg.errors_log(e, "YouTube downloading")
 
             if 'cookie' in str(e):
                 download_status_text.value = 'Invalid cookies'
@@ -316,8 +315,7 @@ def startview(page: ft.Page):
             print(e)
 
             # сохранение ошибки
-            with open('errors.log', 'a', encoding='utf-8') as log:
-                log.write(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} (SoundCloud) {str(e)}\n')
+            cfg.errors_log(e, "SoundCloud downloading")
 
             download_status_text.value = 'Error'
             page.update()

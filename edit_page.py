@@ -127,57 +127,69 @@ def edit_data(page: ft.Page):
 
     # редактировать название аудио в метаданных
     def edit_name_handl(e):
-        # это все нужно чтобы мутаген без проблем изменил метаданные
-        play_pouse_icon.src = config.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
-        audio1.pause()
-        audio1.seek(0)
-        audio1.release()
-        audio_slider.value=0
-        page.overlay.remove(audio1)
-        page.update()
-
-        time.sleep(1)
-
-
-
-        # Если нет ID3-тэгов — создать
         try:
-            audio = ID3(config.audio_file)
-        except ID3NoHeaderError:
-            audio = ID3()  # создаем теги, если их нет
+            # это все нужно чтобы мутаген без проблем изменил метаданные
+            play_pouse_icon.src = config.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
+            audio1.pause()
+            audio1.seek(0)
+            audio1.release()
+            audio_slider.value=0
+            page.overlay.remove(audio1)
+            page.update()
 
-        if song_name_input.value:
-            audio.add(TIT2(encoding=3, text=song_name_input.value.strip())) # название трека в метаданных
-        if artist_name_input.value:
-            audio.add(TPE1(encoding=3, text=artist_name_input.value.strip())) # автор трека в метаданных
-        if album_name_input.value:
-            audio.add(TALB(encoding=3, text=album_name_input.value.strip()))
+            time.sleep(1)
 
-        if not cover_image.src_base64:
-            # удаление старых обложек
-            audio.delall("APIC")
 
-        if cover_image.src:
-            if not cover_image.src.endswith('icon_sq.png'): # временная заглушка
-                # новая обложка
-                with open(cover_image.src, "rb") as img_file:
-                    audio.add(
-                        APIC(
-                            encoding=3,
-                            mime="image/jpeg",
-                            type=3,  # фронтальная обложка
-                            desc="Cover",
-                            data=img_file.read()
+
+            # Если нет ID3-тэгов — создать
+            try:
+                audio = ID3(config.audio_file)
+            except ID3NoHeaderError:
+                audio = ID3()  # создаем теги, если их нет
+
+            if song_name_input.value:
+                audio.add(TIT2(encoding=3, text=song_name_input.value.strip())) # название трека в метаданных
+            if artist_name_input.value:
+                audio.add(TPE1(encoding=3, text=artist_name_input.value.strip())) # автор трека в метаданных
+            if album_name_input.value:
+                audio.add(TALB(encoding=3, text=album_name_input.value.strip()))
+
+            if not cover_image.src_base64:
+                # удаление старых обложек
+                audio.delall("APIC")
+
+            if cover_image.src:
+                if not cover_image.src.endswith('icon_sq.png'): # временная заглушка
+                    # новая обложка
+                    with open(cover_image.src, "rb") as img_file:
+                        audio.add(
+                            APIC(
+                                encoding=3,
+                                mime="image/jpeg",
+                                type=3,  # фронтальная обложка
+                                desc="Cover",
+                                data=img_file.read()
+                            )
                         )
-                    )
 
-        audio.save(v2_version=3)
+            audio.save(config.audio_file, v2_version=3)
 
-        apply_status_text.value = 'Done'
-        page.update()
-        time.sleep(0.5)
-        apply_status_text.value = ' '
-        page.update()
+            apply_status_text.value = 'Done'
+            page.update()
+            time.sleep(0.5)
+            apply_status_text.value = ' '
+            page.update()
+
+        except Exception as e:
+            print(e)
+
+            config.errors_log(e, "Edit page")
+
+            apply_status_text.value = 'Error'
+            page.update()
+            time.sleep(0.5)
+            apply_status_text.value = ' '
+            page.update()
 
     # apply changes
     apply_button = ft.Stack(

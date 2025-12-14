@@ -229,8 +229,7 @@ def music_player(page: ft.Page):
                 print(e)
 
                 # сохранение ошибки
-                with open('errors.log', 'a', encoding='utf-8') as log:
-                    log.write(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} (Trying to add songs) {str(e)}\n')
+                cfg.errors_log(e, "Trying to add songs")
 
         page.update()
 

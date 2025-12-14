@@ -92,3 +92,10 @@ if "not_main_color_hex" in user_settings.keys():
 # настройки
 def open_settings(_, page):
     page.go('/settings')
+
+
+
+# сохранение ошибки
+def errors_log(error, caused_page):
+    with open('errors.log', 'a', encoding='utf-8') as logs:
+        logs.write(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} ({caused_page}) {str(error)}\n')
