@@ -1,4 +1,4 @@
-# Rumi Desktop alpha 0.6
+# Rumi Desktop alpha 0.7
 
 Rumi Desktop is a **local desktop application for downloading, managing, and playing audio** with a strong focus on UI, theming, and metadata editing.
 Built with **Python + Flet**, it combines a downloader, music player, tag editor, and dynamic color system into a single app.
@@ -158,6 +158,8 @@ Ensures strict `#RRGGBB` format.
 
 ## start.py (Download Page)
 
+![Preview](screenshots/start/start.png)
+
 ### Responsibilities
 
 * Download audio and video using `yt-dlp`
@@ -170,6 +172,10 @@ Ensures strict `#RRGGBB` format.
 ---
 
 ## player.py (Music Player Core)
+
+![Preview](screenshots/player/player1.png)
+
+![Preview](screenshots/player/player2.png)
 
 This is the **largest and most important module**.
 
@@ -209,6 +215,12 @@ Supports:
 
 ### Dynamic Theme Generation
 
+![Preview](screenshots/player/player3.png)
+
+![Preview](screenshots/player/player4.png)
+
+![Preview](screenshots/player/player5.png)
+
 1. Extract album cover (APIC tag)
 2. Convert to RGB
 3. Compute average color
@@ -221,6 +233,8 @@ If no cover exists → fallback to default theme.
 ---
 
 ## edit_page.py (Metadata Editor)
+
+![Preview](screenshots/edit_page/edit_page1.png)
 
 ### Responsibilities
 
@@ -241,6 +255,10 @@ If no cover exists → fallback to default theme.
 * Mutagen writes updated ID3 tags
 
 ## You can get metadata from Spotify
+
+![Preview](screenshots/edit_page/edit_page2.png)
+
+![Preview](screenshots/edit_page/edit_page3.png)
 
 ### Configuration
 
@@ -263,6 +281,8 @@ This will create the `.env` with your client information.
 ---
 
 ## settings_page.py (User Settings)
+
+![Preview](screenshots/settings_page/settings_page1.png)
 
 ### Features
 

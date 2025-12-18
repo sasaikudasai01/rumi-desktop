@@ -22,7 +22,6 @@ for path in system_path_list:
         pre_last = folders[-2]
         last = folders[-1]
         if (pre_last, last) == ("ffmpeg", "bin"):
-            print(f'path: "{path}"')
             ffmpeg_is_in_path = True
 
 
