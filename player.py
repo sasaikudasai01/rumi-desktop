@@ -10,7 +10,6 @@ import colorsys
 import numpy as np
 from io import BytesIO
 from pathlib import Path
-from datetime import datetime
 from PIL import Image, ImageFilter # для размытия изображения на фоне
 from mutagen.id3 import ID3, APIC, TIT2, TPE1, ID3NoHeaderError, TALB # метаданные
 
@@ -19,7 +18,7 @@ def music_player(page: ft.Page):
 
     # список путей к мп3 файлам
     try:
-        with open("mp3_files.json", "r", encoding="utf-8") as f:
+        with open(cfg.base_dir_files("mp3_files.json"), "r", encoding="utf-8") as f:
             mp3_files_str = json.load(f)
 
         cfg.all_mp3s = [Path(p) for p in mp3_files_str]
@@ -244,7 +243,7 @@ def music_player(page: ft.Page):
         # удаление элемента трека в интерфейсе
         song_elements.controls.remove(element)
 
-        with open("mp3_files.json", "r", encoding="utf-8") as f:
+        with open(cfg.base_dir_files("mp3_files.json"), "r", encoding="utf-8") as f:
             mp3_files_strr = json.load(f)
 
         mp3_files_strr.remove(str(path))
@@ -252,12 +251,12 @@ def music_player(page: ft.Page):
         cfg.current_mp3_files = cfg.all_mp3s.copy()
 
         # обновление списка путей
-        with open("mp3_files.json", "w", encoding="utf-8") as f:
+        with open(cfg.base_dir_files("mp3_files.json"), "w", encoding="utf-8") as f:
             json.dump([str(p) for p in cfg.all_mp3s], f, ensure_ascii=False, indent=2)
 
         # если треков больше не осталось
         if not mp3_files_strr:
-            os.remove('mp3_files.json')
+            os.remove(cfg.base_dir_files("mp3_files.json"))
 
             if cfg.previous_background:
                 os.remove(cfg.previous_background)
@@ -313,7 +312,7 @@ def music_player(page: ft.Page):
                 cfg.current_mp3_files = files.copy()
 
                 # сохранение в json
-                with open("mp3_files.json", "a", encoding="utf-8") as f:
+                with open(cfg.base_dir_files("mp3_files.json"), "a", encoding="utf-8") as f:
                     json.dump([str(p) for p in files], f, ensure_ascii=False, indent=2)
 
                 add_song_element_to_page(cfg.all_mp3s)
@@ -328,7 +327,7 @@ def music_player(page: ft.Page):
                         cfg.current_mp3_files = cfg.all_mp3s.copy()
 
                         # сохранение в json
-                        with open("mp3_files.json", "w", encoding="utf-8") as f:
+                        with open(cfg.base_dir_files("mp3_files.json"), "w", encoding="utf-8") as f:
                             json.dump([str(p) for p in cfg.all_mp3s], f, ensure_ascii=False, indent=2)
 
                         add_song_element_to_page(new_paths)
@@ -369,9 +368,6 @@ def music_player(page: ft.Page):
                 if isinstance(tag, APIC):
                     # конвертация в base64, чтобы использовать для обложки трека
                     cfg.cover_exists = base64.b64encode(tag.data).decode("utf-8")
-                    ### для проверок ##############################################
-                    # with open("cover.jpg", "wb") as f:
-                    #    f.write(tag.data)
 
                 # есть ли у трека название
                 if isinstance(tag, TIT2):
@@ -521,12 +517,15 @@ def music_player(page: ft.Page):
             profile_song_picture.src = None
             profile_song_picture.src_base64 = base64.b64encode(cover_tag.data).decode("utf-8")
 
+            os.makedirs(cfg.temporal_dir, exist_ok=True)
+
             # установить обложку трека в качестве фона
             blurred_cover = blur_image_bytes(cover_tag.data, format=fmt, radius=5)
-            with open(cfg.resource_path(f"color/temporal_blurred_{file.stem}.png"), "wb") as f:
+            blurred_cover_path = cfg.temporal_dir / f'temporal_blurred_{file.stem}.png'
+            with open(blurred_cover_path, "wb") as f:
                 f.write(blurred_cover)
 
-            background_image.src = cfg.resource_path(f"color/temporal_blurred_{file.stem}.png")
+            background_image.src = str(blurred_cover_path)
             if cfg.previous_background:
                 if os.path.exists(cfg.previous_background):
                     os.remove(cfg.previous_background)
@@ -1067,10 +1066,9 @@ def music_player(page: ft.Page):
                     song_elements.controls.clear()
                     cfg.current_mp3_files = temporal_found_songs
                     add_song_element_to_page(temporal_found_songs)
-                    page.update()
                 else:
                     song_elements.controls.clear()
-                    page.update()
+        page.update()
 
     def search_text_input_on_focus(_):
         cfg.focus_on_search_text_input = True

@@ -7,7 +7,7 @@ from PIL import Image # редактирование изображения
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, error, TIT2, TPE1, TALB, ID3NoHeaderError # изменение метаданных трека
 import os
-from datetime import datetime
+from pathlib import Path
 
 
 
@@ -78,8 +78,9 @@ def startview(page: ft.Page):
             im_cropped.save(f"{new_image_path}.jpg", "JPEG")
             os.remove(image_path)  # удаление оригинального изображения после изменения соотношения сторон
 
+            cfg.temporal_dir.mkdir(parents=True, exist_ok=True)
             # добавление обложки к аудио файлу
-            with open(f"{new_image_path}.jpg", 'rb') as albumart:
+            with open(cfg.temporal_dir / f"{new_image_path}.jpg", 'rb') as albumart:
                 audio.tags.add(
                     APIC(
                         encoding=3,  # utf-8
@@ -93,7 +94,7 @@ def startview(page: ft.Page):
             audio.tags.add(TIT2(encoding=3, text=audio_name))  # название трека в метаданных
             audio.tags.add(TPE1(encoding=3, text=channel_name))  # автор трека в метаданных
             audio.save(v2_version=3)  # по умолчанию файл имеет только ID3v1, поэтому mutagen обрабатывает его некорректно
-            os.remove(f"{new_image_path}.jpg")  # удаление обложки после применения к аудио файлу
+            (cfg.temporal_dir / f"{new_image_path}.jpg").unlink()  # удаление обложки после применения к аудио файлу
 
     def download_yt(e, yt_format, download_img):
         popup.visible = not popup.visible
@@ -102,7 +103,6 @@ def startview(page: ft.Page):
         page.update()
 
         is_no_playlist = True  # плейлист ли это
-        #download_img = True  # скачать обложку для трека
         url = text_input.value  # ссылка на ютуб видео
 
         if url.startswith('https://youtu.be/'):  # работа с укороченными ссылками
@@ -159,7 +159,6 @@ def startview(page: ft.Page):
             'writeplaylistmetafiles': False,  # не скачивать метаданные плейлиста
             'postprocessors': ydl_opts_postprocessors,
             'noplaylist': is_no_playlist,
-            'cookiefile': cfg.resource_path('cooks/cookies.txt'),
             'quiet': True,
             'progress_hooks': [my_hook],
         }
@@ -168,6 +167,17 @@ def startview(page: ft.Page):
 
         if download_img:  # конвертировать изображение если есть
             ydl_opts['convertthumbnails'] = 'webp'
+
+        # использовать куки если есть
+        cooks_txt = cfg.base_dir_folder_file("cooks", "cookies.txt")
+        if cooks_txt.exists():
+            ydl_opts['cookiefile'] = cooks_txt
+
+        # попытка найти ffmpeg в корне проекта если его нет в PATH
+        if not cfg.ffmpeg_is_in_path:
+            ffmpeg_location = cfg.base_dir / "ffmpeg" / "bin"
+            if ffmpeg_location.exists():
+                ydl_opts["ffmpeg_location"] = str(ffmpeg_location)
 
         try:
             with YoutubeDL(ydl_opts) as ydl:
@@ -638,15 +648,16 @@ def startview(page: ft.Page):
     # сохранение пути к аудио файлу
     def on_file_picked(e: ft.FilePickerResultEvent):
         if e.files:
-            song = ID3(e.files[0].path)
+            try:
+                song = ID3(e.files[0].path)
+            except ID3NoHeaderError:
+                song = ID3()
+
             for tag in song.values():
                 # есть ли у трека обложка
                 if isinstance(tag, APIC):
                     # конвертация в base64, чтобы использовать для обложки трека
                     cfg.cover_exists = base64.b64encode(tag.data).decode("utf-8")
-                    ### для проверок ##############################################
-                    # with open("cover.jpg", "wb") as f:
-                    #    f.write(tag.data)
 
                 # есть ли у трека название
                 if isinstance(tag, TIT2):

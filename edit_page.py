@@ -1,8 +1,10 @@
 import flet as ft
 import flet_audio as fa
 import time
+from flet.core.types import TextAlign
 import config as cfg
 from mutagen.id3 import ID3, APIC, TIT2, TPE1, ID3NoHeaderError, TALB # изменение метаданных трека
+from mutagen import File
 
 def edit_data(page: ft.Page):
     # окно выбора обложки
@@ -159,7 +161,7 @@ def edit_data(page: ft.Page):
                 audio.delall("APIC")
 
             if cover_image.src:
-                if not cover_image.src.endswith('icon_sq.png'): # временная заглушка
+                if not str(cover_image.src).endswith('icon_sq.png'): # временная заглушка
                     # новая обложка
                     with open(cover_image.src, "rb") as img_file:
                         audio.add(
@@ -173,6 +175,9 @@ def edit_data(page: ft.Page):
                         )
 
             audio.save(cfg.audio_file, v2_version=3)
+
+            audio1.src = cfg.audio_file
+            page.overlay.append(audio1)
 
             apply_status_text.value = 'Done'
             page.update()
@@ -234,6 +239,313 @@ def edit_data(page: ft.Page):
             ),
         ],
     )
+
+
+
+    # get metadata from spotify
+    def get_spotify_metadata(_):
+        try:
+            song_name, artist_name, cover_path = cfg.return_metadata_from_spotify(song_name_input.value)
+
+            if song_name:
+                song_name_input.value = song_name
+
+            if artist_name:
+                artist_name_input.value = artist_name
+
+            if cover_path:
+                cover_image.src_base64 = None
+                cover_image.src = cover_path
+                if cover_image.opacity == 0.5:
+                    see_change_icon(_)
+
+            page.update()
+
+        except Exception as e:
+            print(e)
+
+            cfg.errors_log(e, "get_spotify_metadata")
+
+            apply_status_text.value = 'Error'
+            page.update()
+            time.sleep(0.5)
+            apply_status_text.value = ' '
+            page.update()
+
+    dev_button = ft.Stack(
+        controls=[
+            # visible button
+            ft.FilledButton(
+                ' ',
+                bgcolor=cfg.not_main_color_hex,
+                style=ft.ButtonStyle(
+                    shape=ft.ContinuousRectangleBorder(radius=60),
+                ),
+                width=100,
+                height=45,
+            ),
+
+            # get metadata from spotify
+            ft.Container(
+                content=ft.Text(
+                    "dev",
+                    style=ft.TextStyle(
+                        color=cfg.main_color_hex,
+                        font_family="Gabarito",
+                        size=30,
+                        weight=ft.FontWeight.BOLD
+                    ),
+                ),
+                alignment=ft.alignment.center,
+                width=100,
+                height=45,
+            ),
+
+            # actual transparent button
+            ft.FilledButton(
+                ' ',
+                bgcolor=ft.Colors.TRANSPARENT,
+                style=ft.ButtonStyle(
+                    shape=ft.ContinuousRectangleBorder(radius=60),
+                ),
+                width=100,
+                height=45,
+                on_click=get_spotify_metadata,
+            ),
+        ],
+    )
+
+
+
+    def show_popup(_, sure):
+        popup.visible = not popup.visible
+        page.update()
+
+        if sure == "sure":
+            try:
+                # это все нужно чтобы мутаген без проблем изменил метаданные
+                play_pouse_icon.src = cfg.resource_path("icons/play_circle_24dp_EBD0E1_FILL0_wght400_GRAD0_opsz24.svg")
+                audio1.pause()
+                audio1.seek(0)
+                audio1.release()
+                audio_slider.value=0
+                page.overlay.remove(audio1)
+                page.update()
+
+                time.sleep(1)
+
+                audio = File(cfg.audio_file)
+                #if audio and audio.tags:
+                audio.delete()
+
+                cover_image.src = cfg.resource_path("color/icon_sq.png")
+                cover_image.src_base64 = None
+                cover_image.opacity = 0.5
+
+                edit_cover_icon.visible = True
+
+                song_name_input.hint_text = "Song name"
+                song_name_input.value = ""
+
+                artist_name_input.hint_text = "Artist name"
+                artist_name_input.value = ""
+
+                audio1.src = cfg.audio_file
+                page.overlay.append(audio1)
+
+                apply_status_text.value = 'Done'
+                page.update()
+                time.sleep(0.5)
+                apply_status_text.value = ' '
+                page.update()
+
+            except Exception as e:
+                print(e)
+
+                cfg.errors_log(e, "Edit page. Trying to reset")
+
+                apply_status_text.value = 'Error'
+                page.update()
+                time.sleep(0.5)
+                apply_status_text.value = ' '
+                page.update()
+
+    reset_button = ft.Stack(
+        controls=[
+            # visible button
+            ft.FilledButton(
+                ' ',
+                bgcolor=cfg.not_main_color_hex,
+                style=ft.ButtonStyle(
+                    shape=ft.ContinuousRectangleBorder(radius=60),
+                ),
+                width=250,
+                height=45,
+            ),
+
+            # text on button
+            ft.Container(
+                content=ft.Text(
+                    "reset",
+                    style=ft.TextStyle(
+                        color=cfg.main_color_hex,
+                        font_family="Gabarito",
+                        size=30,
+                        weight=ft.FontWeight.BOLD
+                    ),
+                ),
+                alignment=ft.alignment.center,
+                width=250,
+                height=45,
+            ),
+
+            # actual transparent button
+            ft.FilledButton(
+                ' ',
+                bgcolor=ft.Colors.TRANSPARENT,
+                style=ft.ButtonStyle(
+                    shape=ft.ContinuousRectangleBorder(radius=60),
+                ),
+                width=250,
+                height=45,
+                on_click=lambda _, sure="show": show_popup(_, sure)
+            ),
+        ],
+    )
+
+    pretty_sure_button = ft.Stack(
+        controls=[
+            # visible button
+            ft.FilledButton(
+                ' ',
+                bgcolor=cfg.not_main_color_hex,
+                style=ft.ButtonStyle(
+                    shape=ft.ContinuousRectangleBorder(radius=60),
+                ),
+                width=180,
+                height=45,
+            ),
+
+            # text on button
+            ft.Container(
+                content=ft.Text(
+                    "Pretty sure",
+                    style=ft.TextStyle(
+                        color=cfg.main_color_hex,
+                        font_family="Gabarito",
+                        size=30,
+                        weight=ft.FontWeight.BOLD
+                    ),
+                ),
+                alignment=ft.alignment.center,
+                width=180,
+                height=45,
+            ),
+
+            # actual transparent button
+            ft.FilledButton(
+                ' ',
+                bgcolor=ft.Colors.TRANSPARENT,
+                style=ft.ButtonStyle(
+                    shape=ft.ContinuousRectangleBorder(radius=60),
+                ),
+                width=180,
+                height=45,
+                on_click=lambda _, sure="sure": show_popup(_, sure),
+            ),
+        ],
+        alignment=ft.alignment.center,
+    )
+
+    im_not_sure_button = ft.Stack(
+        controls=[
+            # visible button
+            ft.FilledButton(
+                ' ',
+                bgcolor=cfg.main_color_hex,
+                style=ft.ButtonStyle(
+                    shape=ft.ContinuousRectangleBorder(radius=60),
+                ),
+                width=250,
+                height=45,
+            ),
+
+            # text on button
+            ft.Container(
+                content=ft.Text(
+                    "No",
+                    style=ft.TextStyle(
+                        color=cfg.not_main_color_hex,
+                        font_family="Gabarito",
+                        size=30,
+                        weight=ft.FontWeight.BOLD
+                    ),
+                ),
+                alignment=ft.alignment.center,
+                width=250,
+                height=45,
+            ),
+
+            # actual transparent button
+            ft.FilledButton(
+                ' ',
+                bgcolor=ft.Colors.TRANSPARENT,
+                style=ft.ButtonStyle(
+                    shape=ft.ContinuousRectangleBorder(radius=60),
+                ),
+                width=250,
+                height=45,
+                on_click=lambda _, sure="not_sure": show_popup(_, sure),
+            ),
+        ],
+    )
+
+    popup = ft.Stack(
+        controls=[
+            # background gradient
+            ft.Container(
+                gradient=ft.LinearGradient(
+                    colors=[ft.Colors.with_opacity(0.9, color='#FF93D7'), ft.Colors.with_opacity(0.9, color='#56288C')],
+                    stops=[0, 1],
+                    begin=ft.alignment.top_left,
+                    end=ft.alignment.bottom_right,
+                ),
+            ),
+
+            ft.Column(
+                controls=[
+                    ft.Container(
+                        content=ft.Text(
+                            'This button deletes all metadata.\nAre you sure?',
+                            style=ft.TextStyle(
+                                color=cfg.not_main_color_hex,
+                                font_family="Gabarito",
+                                size=50,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                            text_align=TextAlign.CENTER,
+                        ),
+                        alignment=ft.alignment.center,
+                    ),
+
+                    ft.Container(
+                        content=im_not_sure_button,
+                        alignment=ft.alignment.center,
+                    ),
+
+                    ft.Container(
+                        content=pretty_sure_button,
+                        alignment=ft.alignment.center,
+                    )
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+        ],
+        expand=True,
+        visible=False,
+    )
+
+
 
     def cancel_editing(_, to_page):
         cfg.cover_exists = None
@@ -411,14 +723,15 @@ def edit_data(page: ft.Page):
                     audio_controls,
 
                     ft.Row(
-                        controls=[apply_button],
+                        controls=[dev_button, reset_button, apply_button],
                         alignment=ft.MainAxisAlignment.CENTER,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.START
-            )
+            ),
+            popup,
         ],
         expand=True,
     )

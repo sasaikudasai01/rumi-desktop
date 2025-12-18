@@ -30,7 +30,7 @@ def main(page: ft.Page):
         elif page.route == "/settings":
             page.views.append(settings(page))
 
-        #page.views.append(music_player(page))
+        #page.views.append(edit_data(page))
         page.update()
 
     def view_pop(e):

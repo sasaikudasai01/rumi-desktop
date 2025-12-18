@@ -36,7 +36,8 @@ pip install -r requirements.txt
 ```
 
 - [FFmpeg](https://ffmpeg.org/download.html) must be installed.
-- After downloading, **add the `ffmpeg\bin` folder to your system `PATH`.**
+- After downloading, **either add `ffmpeg/bin` to your system `PATH` or place the `ffmpeg` folder in the root of `rumi-desktop/`.**
+The application will automatically use ffmpeg from the system PATH if available, otherwise, it will look for it in the project root.
 
 Some videos may require **cookies** to download via `yt-dlp`.  
 To use cookies:  
@@ -239,6 +240,26 @@ If no cover exists → fallback to default theme.
 * User edits fields
 * Mutagen writes updated ID3 tags
 
+## You can get metadata from Spotify
+
+### Configuration
+
+* First, you need CLIENT_ID and CLIENT_SECRET.
+  1. Go to [Spotify for Developers](https://developer.spotify.com/)
+  2. Click `Dashboard`
+  3. Create app
+  4. Copy `Client ID` and `Client secret`
+
+* Now open rumi-desktop.
+
+  1. Go to settings
+  2. Enter `Client ID` and `Client secret` then press `Apply`
+
+This will create the `.env` with your client information.
+
+1. Open the `edit_page` page and ***paste the link to the track from Spotify into the `song_name_input` field***
+2. Press `dev`
+
 ---
 
 ## settings_page.py (User Settings)
@@ -285,12 +306,7 @@ YYYY-MM-DD HH:MM:SS (Context) Error message
 Example command:
 
 ```bash
-pyinstaller -w \
--i color/icon_sq.ico \
---add-data "color;color" \
---add-data "icons;icons" \
---add-data "cooks;cooks" \
-main.py
+pyinstaller rumi-desktop.spec
 ```
 
 ---

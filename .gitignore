@@ -9,13 +9,13 @@ venv/
 # PyInstaller
 build/
 dist/
-*.spec
 
 # Runtime files
 *.log
 *.json
 cooks/
 audio/
+temporal/
 
 # IDE
 .idea/
@@ -23,3 +23,6 @@ audio/
 # OS junk
 Thumbs.db
 .DS_Store
+
+.env
+ffmpeg/
