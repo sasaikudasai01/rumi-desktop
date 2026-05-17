@@ -5,6 +5,7 @@ from flet.core.types import TextAlign
 import config as cfg
 from mutagen.id3 import ID3, APIC, TIT2, TPE1, ID3NoHeaderError, TALB # изменение метаданных трека
 from mutagen import File
+import traceback
 
 def edit_data(page: ft.Page):
     # окно выбора обложки
@@ -185,10 +186,10 @@ def edit_data(page: ft.Page):
             apply_status_text.value = ' '
             page.update()
 
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(traceback.format_exc())
 
-            cfg.errors_log(e, "Edit page")
+            cfg.errors_log(traceback.format_exc(), "Edit page")
 
             apply_status_text.value = 'Error'
             page.update()
@@ -261,10 +262,10 @@ def edit_data(page: ft.Page):
 
             page.update()
 
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(traceback.format_exc())
 
-            cfg.errors_log(e, "get_spotify_metadata")
+            cfg.errors_log(traceback.format_exc(), "get_spotify_metadata")
 
             apply_status_text.value = 'Error'
             page.update()
@@ -350,6 +351,9 @@ def edit_data(page: ft.Page):
                 artist_name_input.hint_text = "Artist name"
                 artist_name_input.value = ""
 
+                album_name_input.hint_text = "Album"
+                album_name_input.value = ""
+
                 audio1.src = cfg.audio_file
                 page.overlay.append(audio1)
 
@@ -359,10 +363,10 @@ def edit_data(page: ft.Page):
                 apply_status_text.value = ' '
                 page.update()
 
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(traceback.format_exc())
 
-                cfg.errors_log(e, "Edit page. Trying to reset")
+                cfg.errors_log(traceback.format_exc(), "Edit page. Trying to reset")
 
                 apply_status_text.value = 'Error'
                 page.update()

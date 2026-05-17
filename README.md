@@ -38,6 +38,7 @@ pip install -r requirements.txt
 - [FFmpeg](https://ffmpeg.org/download.html) must be installed.
 - After downloading, **either add `ffmpeg/bin` to your system `PATH` or place the `ffmpeg` folder in the root of `rumi-desktop/`.**
 The application will automatically use ffmpeg from the system PATH if available, otherwise, it will look for it in the project root.
+- [Node.js](https://nodejs.org/en) must be installed.
 
 Some videos may require **cookies** to download via `yt-dlp`.  
 To use cookies:  

@@ -7,7 +7,8 @@ from PIL import Image # редактирование изображения
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, error, TIT2, TPE1, TALB, ID3NoHeaderError # изменение метаданных трека
 import os
-from pathlib import Path
+import json
+import traceback
 
 
 
@@ -51,7 +52,7 @@ def startview(page: ft.Page):
 
     # сделать квадратную картинку для трека
     def mp3_thumbnail(change_img, image_path, audio_path, audio_name, channel_name):
-        if '- Topic' in channel_name:
+        if channel_name:
             channel_name = channel_name.replace('- Topic', '').strip()
 
         audio = MP3(audio_path, ID3=ID3)
@@ -116,7 +117,8 @@ def startview(page: ft.Page):
 
         # если пользователь хочет скачать аудио
         if yt_format == 'mp4':
-            ydl_opts_format = 'bestvideo[ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc1]'  # попытка получить лучшее видео и аудио в mp4
+            #ydl_opts_format = "bestvideo[protocol!=m3u8]+bestaudio[protocol!=m3u8]/best"  # попытка получить лучшее видео и аудио в mp4
+            ydl_opts_format = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best/bestvideo/best"  # попытка получить лучшее видео и аудио в mp4
             ydl_opts_postprocessors = [{
                 'key': 'FFmpegVideoConvertor',
                 'preferedformat': 'mp4'  # Перекодирует финальный файл
@@ -125,7 +127,7 @@ def startview(page: ft.Page):
             ydl_opts_merge_output_format = 'mp4'
             download_img = False
         else:
-            ydl_opts_format = 'bestaudio/best'
+            ydl_opts_format = "bestaudio[protocol!=m3u8]/bestaudio/best"
             ydl_opts_postprocessors = [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',  # формат аудио
@@ -153,7 +155,7 @@ def startview(page: ft.Page):
             'format': ydl_opts_format,  # качество аудио
             'writethumbnail': download_img,
             'outtmpl': f'{cfg.download_path}/%(title)s.%(ext)s',  # название
-            'restrictfilenames': True,  # избавление от лишних символов в названии
+            #'restrictfilenames': True,  # избавление от лишних символов в названии
             'writedescription': False,  # не скачивать описание видео
             'writeannotations': False,  # не скачивать аннотации
             'writeplaylistmetafiles': False,  # не скачивать метаданные плейлиста
@@ -161,6 +163,17 @@ def startview(page: ft.Page):
             'noplaylist': is_no_playlist,
             'quiet': True,
             'progress_hooks': [my_hook],
+
+            #"extractor_args": {
+            #    "youtube": {
+            #        "player_client": ["android"],
+            #        "player_skip": ["web", "web_safari", "ios"],
+            #    }
+            #},
+            "external_downloader": None,
+            "hls_prefer_native": False,
+
+            "js_runtimes": {"node": {}},
         }
         if yt_format == 'mp4':
             ydl_opts['merge_output_format'] = ydl_opts_merge_output_format
@@ -169,15 +182,14 @@ def startview(page: ft.Page):
             ydl_opts['convertthumbnails'] = 'webp'
 
         # использовать куки если есть
-        cooks_txt = cfg.base_dir_folder_file("cooks", "cookies.txt")
+        cooks_txt = cfg.base_dir_files("cooks", "cookies.txt")
         if cooks_txt.exists():
             ydl_opts['cookiefile'] = cooks_txt
 
-        # попытка найти ffmpeg в корне проекта если его нет в PATH
-        if not cfg.ffmpeg_is_in_path:
-            ffmpeg_location = cfg.base_dir / "ffmpeg" / "bin"
-            if ffmpeg_location.exists():
-                ydl_opts["ffmpeg_location"] = str(ffmpeg_location)
+        # попытка найти ffmpeg в корне проекта
+        ffmpeg_location = cfg.base_dir / "ffmpeg" / "bin"
+        if ffmpeg_location.exists():
+            ydl_opts["ffmpeg_location"] = str(ffmpeg_location)
 
         try:
             with YoutubeDL(ydl_opts) as ydl:
@@ -229,11 +241,11 @@ def startview(page: ft.Page):
 
             cfg.video_counter = 0
 
-        except Exception as e:
-            print(f'Error: {e}')
+        except Exception:
+            print(traceback.format_exc())
 
             # сохранение ошибки
-            cfg.errors_log(e, "YouTube downloading")
+            cfg.errors_log(traceback.format_exc(), "YouTube downloading")
 
             if 'cookie' in str(e):
                 download_status_text.value = 'Invalid cookies'
@@ -321,11 +333,11 @@ def startview(page: ft.Page):
             download_status_text.value = ' '
             page.update()
 
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(traceback.format_exc())
 
             # сохранение ошибки
-            cfg.errors_log(e, "SoundCloud downloading")
+            cfg.errors_log(traceback.format_exc(), "SoundCloud downloading")
 
             download_status_text.value = 'Error'
             page.update()
@@ -333,34 +345,6 @@ def startview(page: ft.Page):
             download_status_text.value = ' '
             page.update()
             cfg.video_counter = 0
-
-    # поле ввода ссылки
-    text_input = ft.TextField(
-        hint_text="url",
-        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=f"#40{cfg.main_color_hex.replace('#', '')}"),
-        text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=cfg.main_color_hex),
-        text_size=45,
-        border_color="transparent",
-        border_radius=80,
-        bgcolor="transparent",
-    )
-    search_field = ft.FilledButton(
-        ' ',
-        bgcolor=cfg.not_main_color_hex,
-        style=ft.ButtonStyle(
-            shape=ft.ContinuousRectangleBorder(radius=60),
-        ),
-        width=900,
-        height=80,
-    )
-
-    # иконка поиска
-    search_icon = ft.Image(
-        src=cfg.resource_path("icons/search_24dp_220918_FILL0_wght400_GRAD0_opsz24.svg"),
-        width=60,
-        height=60,
-        color=cfg.main_color_hex,
-    )
 
 
 
@@ -388,6 +372,39 @@ def startview(page: ft.Page):
 
     directory_picker = ft.FilePicker(on_result=on_directory_picked)
     page.overlay.append(directory_picker)
+
+
+
+    # поле ввода ссылки
+    text_input = ft.TextField(
+        hint_text="url",
+        hint_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=f"#40{cfg.main_color_hex.replace('#', '')}"),
+        text_style=ft.TextStyle(font_family="Gabarito", weight=ft.FontWeight.BOLD, color=cfg.main_color_hex),
+        text_size=45,
+        border_color="transparent",
+        border_radius=80,
+        bgcolor="transparent",
+        on_submit=directory_path,
+    )
+    search_field = ft.FilledButton(
+        ' ',
+        bgcolor=cfg.not_main_color_hex,
+        style=ft.ButtonStyle(
+            shape=ft.ContinuousRectangleBorder(radius=60),
+        ),
+        width=900,
+        height=80,
+    )
+
+    # иконка поиска
+    search_icon = ft.Image(
+        src=cfg.resource_path("icons/search_24dp_220918_FILL0_wght400_GRAD0_opsz24.svg"),
+        width=60,
+        height=60,
+        color=cfg.main_color_hex,
+    )
+
+
 
     # show youtube download menu
     def toggle_menu(e):

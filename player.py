@@ -12,6 +12,7 @@ from io import BytesIO
 from pathlib import Path
 from PIL import Image, ImageFilter # для размытия изображения на фоне
 from mutagen.id3 import ID3, APIC, TIT2, TPE1, ID3NoHeaderError, TALB # метаданные
+import traceback
 
 def music_player(page: ft.Page):
     # border=ft.border.all(1, ft.Colors.RED), # отладка
@@ -26,6 +27,26 @@ def music_player(page: ft.Page):
     except:
         cfg.current_mp3_files = None
         cfg.all_mp3s = None
+
+
+
+    # функция для размытия изображения перед применением к фону
+    def blur_image_bytes(input_bytes, format="JPEG", size=640, radius=20):
+        image = Image.open(BytesIO(input_bytes))
+
+        # jpeg не может работать с альфа каналом поэтому конвертация в rgb вместо rgba
+        if image.mode in ("RGBA", "LA", "P") and format.upper() in ("JPEG", "JPG"):
+            image = image.convert("RGB")
+
+        # нужно ресайзнуть картинку, чтобы блюр сработал адекватно
+        # иначе при больших разрешениях блюр незаметен
+        image = image.resize((size, size), Image.LANCZOS)
+
+        image = image.filter(ImageFilter.GaussianBlur(radius))
+
+        output = BytesIO()
+        image.save(output, format=format)
+        return output.getvalue()
 
 
 
@@ -101,7 +122,10 @@ def music_player(page: ft.Page):
         # если у трека есть обложка, название и артист, то показать всю инфy
         for file in mp3_files_path:
             cover_image = ft.Image(
-                src=cfg.resource_path("color/icon_sq.png"),
+                src=cfg.resource_path("color/icon_sq_64p.png"),
+                width=80,
+                height=80,
+                fit=ft.ImageFit.FILL,
             )
 
             # song cover container
@@ -195,7 +219,7 @@ def music_player(page: ft.Page):
                     if isinstance(tag, APIC):
                         # конвертация в base64, чтобы использовать для обложки трека
                         cover_image.src = None
-                        cover_image.src_base64 = base64.b64encode(tag.data).decode("utf-8")
+                        cover_image.src_base64 = base64.b64encode(blur_image_bytes(tag.data, size=128, radius=0)).decode("utf-8")
 
                     # есть ли у трека название
                     if isinstance(tag, TIT2):
@@ -224,11 +248,11 @@ def music_player(page: ft.Page):
                 # сделать кнопку удалить видимой
                 one_song_element.on_hover = lambda _, icon=delete_icon: show_delete_button(icon)
 
-            except Exception as e:
-                print(e)
+            except Exception:
+                print(traceback.format_exc())
 
                 # сохранение ошибки
-                cfg.errors_log(e, "Trying to add songs")
+                cfg.errors_log(traceback.format_exc(), "Trying to add songs")
 
         page.update()
 
@@ -1121,23 +1145,7 @@ def music_player(page: ft.Page):
         expand=True, # нужно растянуть на весь экран чтобы внутренний Column мог прокручиваться
     )
 
-    # функция для размытия изображения перед применением к фону
-    def blur_image_bytes(input_bytes, format="JPEG", radius=20):
-        image = Image.open(BytesIO(input_bytes))
 
-        # jpeg не может работать с альфа каналом поэтому конвертация в rgb вместо rgba
-        if image.mode in ("RGBA", "LA") and format.upper() in ("JPEG", "JPG"):
-            image = image.convert("RGB")
-
-        # нужно ресайзнуть картинку, чтобы блюр сработал адекватно
-        # иначе при больших разрешениях блюр незаметен
-        image = image.resize((640, 640), Image.LANCZOS)
-
-        image = image.filter(ImageFilter.GaussianBlur(radius))
-
-        output = BytesIO()
-        image.save(output, format=format)
-        return output.getvalue()
 
     # получить средний цвет изображения, чтобы применить в качестве темы
     def average_color_from_apic(apic_tag):

@@ -4,49 +4,50 @@ import sys, os
 from datetime import datetime
 import requests
 import base64
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 from pathlib import Path
 import shutil
+from PIL import Image
 
-
-
-# есть ли ffmpeg в PATH
-ffmpeg_is_in_path = False
-
-system_path = os.environ.get("PATH", "")
-system_path_list = [Path(path) for path in system_path.split(os.pathsep)]
-
-for path in system_path_list:
-    folders = list(path.parts)
-    if len(folders) >= 2:
-        pre_last = folders[-2]
-        last = folders[-1]
-        if (pre_last, last) == ("ffmpeg", "bin"):
-            ffmpeg_is_in_path = True
+current_version = "0.8.0"
+# временная заглушка. нужно менять перед каждым релизом
+current_date = "2026-03-18"
 
 
 
 if getattr(sys, "frozen", False):
     # запускается из exe
     base_dir = Path(sys.executable).parent
+
 else:
     # запускается из скрипта
     base_dir = Path(__file__).parent
+    current_date = datetime.now().strftime("%Y-%m-%d")
 
-# работа с путями для создания файлов/папок в основной директории
-def base_dir_files(file_name):
-    return Path(base_dir) / file_name
+# работа с путями для файлов/папок в основной директории
+def base_dir_files(*parts):
+    return Path(base_dir).joinpath(*parts)
 
-# работа с путями для создания файлов в папке в основной директории
-def base_dir_folder_file(folder, file_name):
-    return Path(base_dir) / folder / file_name
+ 
 
+# сохранить текущую версию программы
+# вариант с set_key() не подходит, потому что оно добавляет лишние кавычки, что иногда ломает логику
+dotenv_list = dotenv_values(base_dir_files(".env"))
+with open(base_dir_files(".env"), "w", encoding="UTF-8") as env:
+    # текущая версия программы
+    dotenv_list["VERSION"] = current_version
+    # передавать всегда актуальную дату
+    dotenv_list["DATE"] = current_date
 
+    # перевести в строку, чтобы записать в .env
+    dotenv_str = "\n".join(f'{key}={value}' for key, value in dotenv_list.items())
+    env.write(dotenv_str)
 
-load_dotenv(Path(base_dir) / ".env")
+    CLIENT_ID = dotenv_list.get("SPOTIFY_CLIENT_ID")
+    CLIENT_SECRET = dotenv_list.get("SPOTIFY_CLIENT_SECRET")
 
-CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
-CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
+    # очистить переменные
+    del dotenv_str
 
 
 
@@ -162,8 +163,7 @@ def open_settings(_, page):
 
 # get metadata from spotify
 def return_metadata_from_spotify(url):
-    resp_status_code = ''
-    resp_text = ''
+    err_message = ''
     try:
         auth = base64.b64encode(
             f'{CLIENT_ID}:{CLIENT_SECRET}'.encode()
@@ -180,6 +180,8 @@ def return_metadata_from_spotify(url):
 
         resp_status_code = resp.status_code
         resp_text = resp.text
+
+        err_message += f'\nresp_status_code: "{resp_status_code}"\nresp_text: "{resp_text}" \nDEBUG url: "{url}"'
 
         token = requests.post(
             "https://accounts.spotify.com/api/token",
@@ -198,20 +200,34 @@ def return_metadata_from_spotify(url):
         else:
             return
 
-        track = requests.get(
+        track_resp = requests.get(
             f"https://api.spotify.com/v1/tracks/{track_id}",
             headers={"Authorization": f"Bearer {token}"}
-        ).json()
+        )
 
-        track_name = track.get("name")
+        err_message += f"\nDEBUG track status: {track_resp.status_code}\nDEBUG track response: {track_resp.text}"
 
-        # track["artists"] это словари которые хранят всю инфу об исполнителе / исполнителях
-        artists_list = [a["name"] for a in track["artists"]]
-        artists_str = ", ".join(artist.strip() for artist in artists_list)
+        # если аккаунт бесплатный без премиума
+        if track_resp.status_code == 403:
+            # можно достать обложку и название через oembed, но автора получить нельзя
+            resp = requests.get("https://open.spotify.com/oembed", params={"url": url}).json()
 
-        cover_url = track["album"]["images"][0]["url"]
+            track_name = resp["title"]
+            cover_url = resp["thumbnail_url"]
+            artists_str = "None"
 
-        sanitized_cover_name = re.sub(r'[\\/:*?"<>|]', '_', f'{track_name} - {artists_str}.jpg')
+        else:
+            track = track_resp.json()
+
+            track_name = track.get("name")
+
+            # track["artists"] это словари, которые хранят всю инфу об исполнителе / исполнителях
+            artists_list = [a["name"] for a in track["artists"]]
+            artists_str = ", ".join(artist.strip() for artist in artists_list)
+
+            cover_url = track["album"]["images"][0]["url"]
+
+        sanitized_cover_name = re.sub(r'[\\/:*?"<>|]', '_', f'{track_name}.jpg')
 
         temporal_dir.mkdir(parents=True, exist_ok=True)
         cover_path = temporal_dir / sanitized_cover_name
@@ -222,17 +238,21 @@ def return_metadata_from_spotify(url):
         with open(cover_path, "wb") as f:
             f.write(resp.content)
 
+        # ресайз обложки, чтобы проще было с ней работать дальше
+        image = Image.open(cover_path)
+        image = image.resize((640, 640), Image.LANCZOS)
+        image.save(cover_path, format="JPEG")
+
         return track_name, artists_str, cover_path
 
     except Exception as e:
-        print(e)
-        err = str(e)
+        err_message += f'\n{str(e)}'
         if str(e) == "'access_token'":
             print(f'{str(e)}. Invalid client_id or client_secret. STATUS: {resp_status_code}. {resp_text}')
-            err = f'{str(e)}. Invalid client_id or client_secret. STATUS: {resp_status_code}. {resp_text}'
+            err_message = f'{str(e)}. Invalid client_id or client_secret. STATUS: {resp_status_code}. {resp_text}'
 
         elif str(e) == "'client_id'":
             print(f"{str(e)}. Failed to get client_id or client_secret")
-            err = f"{str(e)}. Failed to get client_id or client_secret"
+            err_message = f"{str(e)}. Failed to get client_id or client_secret"
 
-        errors_log(err, "Tried to get Spotify metadata")
+        errors_log(err_message, "Tried to get Spotify metadata")

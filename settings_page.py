@@ -1,6 +1,9 @@
 import flet as ft
 import config as cfg
 import json
+import os
+from dotenv import load_dotenv, dotenv_values
+from pathlib import Path
 
 
 
@@ -117,11 +120,21 @@ def settings(page: ft.Page):
 
     def apply_settings(_):
         if client_id_input.value or client_secret_input.value:
+            dotenv_list = dotenv_values(Path(cfg.base_dir) / ".env")
             with open(cfg.base_dir_files(".env"), "w", encoding="UTF-8") as env:
-                env.write(f'SPOTIFY_CLIENT_ID={client_id_input.value}\nSPOTIFY_CLIENT_SECRET={client_secret_input.value}')
+                # эти проверки нужны, чтобы не повторять информацию в дот энв
+                if not dotenv_list.get("SPOTIFY_CLIENT_ID") or dotenv_list.get("SPOTIFY_CLIENT_ID") != client_id_input.value:
+                    dotenv_list["SPOTIFY_CLIENT_ID"] = client_id_input.value
+                if not dotenv_list.get("SPOTIFY_CLIENT_SECRET") or dotenv_list.get("SPOTIFY_CLIENT_SECRET") != client_secret_input.value:
+                    dotenv_list["SPOTIFY_CLIENT_SECRET"] = client_secret_input.value
+
+                dotenv_str = "\n".join(f'{key}={value}' for key, value in dotenv_list.items())
+                env.write(dotenv_str)
 
                 cfg.CLIENT_ID = client_id_input.value
                 cfg.CLIENT_SECRET = client_secret_input.value
+
+            del dotenv_str, dotenv_list
 
 
 
